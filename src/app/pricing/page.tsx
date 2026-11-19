@@ -192,9 +192,14 @@ export default function PricingPage() {
                   href={plan.href}
                   className={`mt-8 flex h-12 items-center justify-center gap-2 rounded-xl px-4 text-sm font-bold transition ${
                     plan.featured
-                      ? "bg-white text-[#087f6e] hover:bg-[#e8f5f1]"
+                      ? "!bg-white !text-black hover:!bg-[#e8f5f1]"
                       : "bg-[#087f6e] text-white hover:bg-[#066657]"
                   }`}
+                  style={
+                    plan.featured
+                      ? { color: "#000000", backgroundColor: "#ffffff" }
+                      : undefined
+                  }
                 >
                   {plan.button}
                   <ArrowRight size={16} />
