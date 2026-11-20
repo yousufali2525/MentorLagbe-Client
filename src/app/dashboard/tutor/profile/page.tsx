@@ -6,7 +6,7 @@ import type { ChangeEvent, FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+const API_URL = process.env.NODE_ENV === "development" ? "http://localhost:5000" : "";
 
 type UserProfile = {
   _id?: string;
@@ -508,7 +508,7 @@ export default function TutorProfilePage() {
                   </button>
 
                   <span className="text-xs text-gray-500">
-                    PNG, JPG, WEBP · Maximum 8 MB
+                    PNG, JPG, WEBP Â· Maximum 8 MB
                   </span>
 
                   <input

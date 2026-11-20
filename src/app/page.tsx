@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 
 const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+  process.env.NODE_ENV === "development" ? "http://localhost:5000" : "";
 
 type Tuition = {
   _id?: string;
@@ -36,8 +36,8 @@ type Tuition = {
 };
 
 const subjects = [
-  { name: "Mathematics", icon: "∑", color: "bg-blue-50 text-blue-700" },
-  { name: "Physics", icon: "⚛", color: "bg-purple-50 text-purple-700" },
+  { name: "Mathematics", icon: "âˆ‘", color: "bg-blue-50 text-blue-700" },
+  { name: "Physics", icon: "âš›", color: "bg-purple-50 text-purple-700" },
   { name: "Programming", icon: "</>", color: "bg-emerald-50 text-emerald-700" },
   { name: "IELTS", icon: "A+", color: "bg-orange-50 text-orange-700" },
 ];
@@ -68,7 +68,7 @@ const steps = [
 
 function formatFee(fee?: number) {
   if (typeof fee !== "number") return "Negotiable";
-  return `৳${fee.toLocaleString("en-BD")}/month`;
+  return `à§³${fee.toLocaleString("en-BD")}/month`;
 }
 
 export default function HomePage() {
@@ -554,7 +554,7 @@ export default function HomePage() {
           <div className="rounded-2xl border border-[#e3ebe8] bg-white p-8">
             <p className="text-sm font-bold text-[#087f6e]">Free Plan</p>
             <h3 className="mt-3 text-3xl font-extrabold text-[#142c2b]">
-              ৳0
+              à§³0
             </h3>
             <p className="mt-2 text-sm text-[#71817c]">
               Start using MentorLagbe.

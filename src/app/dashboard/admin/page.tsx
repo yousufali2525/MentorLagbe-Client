@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ToastProvider";
 
 const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+  process.env.NODE_ENV === "development" ? "http://localhost:5000" : "";
 
 type Stats = {
   totalUsers: number;
@@ -39,17 +39,17 @@ const initialStats: Stats = {
 };
 
 const statCards = [
-  { title: "Total Users", key: "totalUsers", icon: "👥" },
-  { title: "Students", key: "totalStudents", icon: "🎓" },
-  { title: "Tutors", key: "totalTutors", icon: "👨‍🏫" },
-  { title: "Admins", key: "totalAdmins", icon: "🛡️" },
-  { title: "Total Tuitions", key: "totalTuitions", icon: "📚" },
-  { title: "Pending Tuitions", key: "pendingTuitions", icon: "⏳" },
-  { title: "Approved Tuitions", key: "approvedTuitions", icon: "✅" },
-  { title: "Rejected Tuitions", key: "rejectedTuitions", icon: "❌" },
-  { title: "Total Applications", key: "totalApplications", icon: "📝" },
-  { title: "Total Payments", key: "totalPayments", icon: "💳" },
-  { title: "Paid Payments", key: "paidPayments", icon: "💰" },
+  { title: "Total Users", key: "totalUsers", icon: "ðŸ‘¥" },
+  { title: "Students", key: "totalStudents", icon: "ðŸŽ“" },
+  { title: "Tutors", key: "totalTutors", icon: "ðŸ‘¨â€ðŸ«" },
+  { title: "Admins", key: "totalAdmins", icon: "ðŸ›¡ï¸" },
+  { title: "Total Tuitions", key: "totalTuitions", icon: "ðŸ“š" },
+  { title: "Pending Tuitions", key: "pendingTuitions", icon: "â³" },
+  { title: "Approved Tuitions", key: "approvedTuitions", icon: "âœ…" },
+  { title: "Rejected Tuitions", key: "rejectedTuitions", icon: "âŒ" },
+  { title: "Total Applications", key: "totalApplications", icon: "ðŸ“" },
+  { title: "Total Payments", key: "totalPayments", icon: "ðŸ’³" },
+  { title: "Paid Payments", key: "paidPayments", icon: "ðŸ’°" },
 ] as const;
 
 const quickActions = [
@@ -57,19 +57,19 @@ const quickActions = [
     title: "Manage Users",
     description: "View, search and manage platform users.",
     href: "/dashboard/admin/users",
-    icon: "👥",
+    icon: "ðŸ‘¥",
   },
   {
     title: "Manage Tuitions",
     description: "Review and approve tuition requests.",
     href: "/dashboard/admin/tuitions",
-    icon: "📚",
+    icon: "ðŸ“š",
   },
   {
     title: "Transactions",
     description: "View payment records and transactions.",
     href: "/dashboard/admin/transactions",
-    icon: "💳",
+    icon: "ðŸ’³",
   },
 ];
 
@@ -183,7 +183,7 @@ export default function AdminDashboard() {
           disabled={loading}
           className="rounded-lg bg-teal-600 px-5 py-3 font-medium text-white transition hover:bg-teal-700 disabled:opacity-50"
         >
-          {loading ? "Loading..." : "↻ Refresh"}
+          {loading ? "Loading..." : "â†» Refresh"}
         </button>
       </div>
 
@@ -204,12 +204,12 @@ export default function AdminDashboard() {
           {
             title: "Total Users",
             value: stats.totalUsers,
-            icon: "👥",
+            icon: "ðŸ‘¥",
           },
           {
             title: "Total Tuitions",
             value: stats.totalTuitions,
-            icon: "📚",
+            icon: "ðŸ“š",
           },
         ].map((item) => (
           <div
@@ -283,7 +283,7 @@ export default function AdminDashboard() {
                 {item.description}
               </p>
               <p className="mt-4 text-sm font-semibold text-teal-600">
-                Open page →
+                Open page â†’
               </p>
             </button>
           ))}

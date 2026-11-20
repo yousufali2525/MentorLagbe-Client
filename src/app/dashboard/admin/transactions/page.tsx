@@ -5,7 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ToastProvider";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+const API_URL = process.env.NODE_ENV === "development" ? "http://localhost:5000" : "";
 const LIMIT = 10;
 
 type Payment = {
@@ -169,7 +169,7 @@ export default function AdminTransactionsPage() {
             disabled={loading}
             className="rounded-lg bg-teal-600 px-5 py-3 font-medium text-white transition hover:bg-teal-700 disabled:opacity-50"
           >
-            {loading ? "Loading..." : "↻ Refresh"}
+            {loading ? "Loading..." : "â†» Refresh"}
           </button>
         </div>
 
@@ -229,7 +229,7 @@ export default function AdminTransactionsPage() {
             </div>
           ) : filteredPayments.length === 0 ? (
             <div className="p-10 text-center">
-              <div className="mb-3 text-4xl">💳</div>
+              <div className="mb-3 text-4xl">ðŸ’³</div>
               <h4 className="font-semibold text-slate-800">
                 No transactions found
               </h4>

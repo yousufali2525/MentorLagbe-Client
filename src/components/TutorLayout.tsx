@@ -93,8 +93,7 @@ export default function TutorLayout({
 
     try {
       await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000"}/api/auth/sign-out`,
-        {
+        `${process.env.NODE_ENV === "development" ? "http://localhost:5000" : ""}/api/auth/sign-out`,        {
           method: "POST",
           headers: token
             ? { Authorization: `Bearer ${token}` }

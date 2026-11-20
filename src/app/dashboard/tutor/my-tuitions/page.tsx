@@ -24,7 +24,7 @@ import {
 import { useRouter } from "next/navigation";
 
 const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+  process.env.NODE_ENV === "development" ? "http://localhost:5000" : "";
 
 type Tuition = {
   _id: string;
@@ -551,7 +551,7 @@ export default function TutorMyTuitionsPage() {
 
                 <div>
                   <label className="mb-2 block text-sm font-semibold text-[#23413c]">
-                    Monthly Salary (৳)
+                    Monthly Salary (à§³)
                   </label>
                   <input
                     required
@@ -764,7 +764,7 @@ export default function TutorMyTuitionsPage() {
 
                         <span className="flex items-center gap-1.5">
                           <Wallet size={15} />
-                          ৳{Number(tuition.salary).toLocaleString("en-BD")} / month
+                          à§³{Number(tuition.salary).toLocaleString("en-BD")} / month
                         </span>
 
                         <span className="flex items-center gap-1.5">
@@ -817,7 +817,7 @@ export default function TutorMyTuitionsPage() {
           {!loading && filteredTuitions.length > 0 && (
             <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-[#e3ebe8] pt-5">
               <p className="text-sm text-[#82918c]">
-                Showing {(page - 1) * pageSize + 1}–
+                Showing {(page - 1) * pageSize + 1}â€“
                 {Math.min(page * pageSize, filteredTuitions.length)} of{" "}
                 {filteredTuitions.length} tuitions
               </p>

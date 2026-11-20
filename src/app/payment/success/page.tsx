@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 
 const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+  process.env.NODE_ENV === "development" ? "http://localhost:5000" : "";
 
 type User = {
   id?: string;
@@ -173,7 +173,7 @@ function PaymentSuccessContent() {
                 : "bg-blue-100 text-blue-600"
           }`}
         >
-          {status === "success" ? "✓" : status === "error" ? "!" : "…"}
+          {status === "success" ? "âœ“" : status === "error" ? "!" : "â€¦"}
         </div>
 
         <h1 className="mb-3 text-3xl font-bold text-gray-900">

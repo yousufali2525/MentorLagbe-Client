@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 
 const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+  process.env.NODE_ENV === "development" ? "http://localhost:5000" : "";
 
 type User = {
   id?: string;
@@ -392,7 +392,7 @@ export default function StudentDashboard() {
                           <p className="mt-1 text-xs text-[#82918c]">
                             {application.tuition?.subject ||
                               "Subject unavailable"}
-                            {fee !== undefined && ` • ৳${fee}`}
+                            {fee !== undefined && ` â€¢ à§³${fee}`}
                           </p>
 
                           {application.createdAt && (

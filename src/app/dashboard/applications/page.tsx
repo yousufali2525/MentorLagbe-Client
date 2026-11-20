@@ -16,7 +16,7 @@ import {
   Trash2,
 } from "lucide-react";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+const API_URL = process.env.NODE_ENV === "development" ? "http://localhost:5000" : "";
 
 type Application = {
   _id?: string;
@@ -401,13 +401,13 @@ export default function MyApplicationsPage() {
                         {application.tuition?.subject ||
                           application.subject ||
                           "Subject unavailable"}
-                        {" · "}
+                        {" Â· "}
                         Applied: {formatDate(application.createdAt)}
                       </p>
 
                       {fee !== undefined && (
                         <p className="mt-2 text-sm font-bold text-indigo-600">
-                          ৳{fee.toLocaleString("en-BD")} / month
+                          à§³{fee.toLocaleString("en-BD")} / month
                         </p>
                       )}
                     </div>

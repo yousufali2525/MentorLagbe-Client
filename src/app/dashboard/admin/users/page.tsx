@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ToastProvider";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+const API_URL = process.env.NODE_ENV === "development" ? "http://localhost:5000" : "";
 const ITEMS_PER_PAGE = 10;
 
 type User = {
@@ -371,7 +371,7 @@ export default function ManageUsersPage() {
     {
       label: "Total Users",
       value: users.length,
-      icon: "♙",
+      icon: "â™™",
       color: "bg-[#e7f3ef] text-[#087f6e]",
     },
     {
@@ -437,7 +437,7 @@ export default function ManageUsersPage() {
             href="/dashboard/admin"
             className="text-sm font-semibold text-[#087f6e] hover:underline"
           >
-            ← Back to Dashboard
+            â† Back to Dashboard
           </Link>
 
           <div className="mt-5 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
@@ -455,7 +455,7 @@ export default function ManageUsersPage() {
               disabled={loading}
               className="w-fit rounded-xl border border-[#dce9e5] bg-white px-5 py-3 text-sm font-semibold text-[#087f6e] transition hover:bg-[#e7f3ef] disabled:opacity-50"
             >
-              ↻ Refresh Users
+              â†» Refresh Users
             </button>
           </div>
         </div>
@@ -643,7 +643,7 @@ export default function ManageUsersPage() {
                 {paginatedUsers.length === 0 && (
                   <tr>
                     <td colSpan={6} className="px-6 py-16 text-center">
-                      <div className="text-4xl text-[#94a5a0]">♙</div>
+                      <div className="text-4xl text-[#94a5a0]">â™™</div>
                       <h4 className="mt-3 font-bold">No users found</h4>
                       <p className="mt-2 text-sm text-[#647875]">
                         Try changing your search or filter settings.
@@ -699,7 +699,7 @@ export default function ManageUsersPage() {
         </section>
 
         <footer className="py-8 text-center text-xs text-[#94a5a0]">
-          © {new Date().getFullYear()} MentorLagbe. All rights reserved.
+          Â© {new Date().getFullYear()} MentorLagbe. All rights reserved.
         </footer>
       </main>
     </div>

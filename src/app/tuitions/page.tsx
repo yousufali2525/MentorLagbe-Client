@@ -62,7 +62,7 @@ const classLevels = [
 ];
 
 const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+  process.env.NODE_ENV === "development" ? "http://localhost:5000" : "";
 
 function TuitionsPageContent() {
   const [tuitions, setTuitions] = useState<Tuition[]>([]);
@@ -462,7 +462,7 @@ function TuitionsPageContent() {
                       </span>
 
                       <span className="text-lg font-extrabold text-[#087f6e]">
-                        ৳{" "}
+                        à§³{" "}
                         {fee != null
                           ? Number(fee).toLocaleString("en-BD")
                           : "Negotiable"}

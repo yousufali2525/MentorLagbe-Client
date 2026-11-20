@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from "react";
@@ -18,7 +17,9 @@ import {
 } from "lucide-react";
 
 const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+  process.env.NODE_ENV === "development"
+    ? "http://localhost:5000"
+    : "";
 
 export default function SignUpPage() {
   const router = useRouter();

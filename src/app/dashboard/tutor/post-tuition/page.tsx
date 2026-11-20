@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 
 const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+  process.env.NODE_ENV === "development" ? "http://localhost:5000" : "";
 
 type TuitionForm = {
   title: string;

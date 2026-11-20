@@ -5,7 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ToastProvider";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+const API_URL = process.env.NODE_ENV === "development" ? "http://localhost:5000" : "";
 
 type Tuition = {
   _id: string;
@@ -190,7 +190,7 @@ export default function AdminTuitionsPage() {
             disabled={loading}
             className="rounded-lg bg-teal-600 px-5 py-3 font-medium text-white hover:bg-teal-700 disabled:opacity-50"
           >
-            {loading ? "Loading..." : "↻ Refresh"}
+            {loading ? "Loading..." : "â†» Refresh"}
           </button>
         </div>
 
@@ -237,7 +237,7 @@ export default function AdminTuitionsPage() {
             </div>
           ) : filteredTuitions.length === 0 ? (
             <div className="p-10 text-center">
-              <div className="mb-3 text-4xl">📚</div>
+              <div className="mb-3 text-4xl">ðŸ“š</div>
               <h4 className="font-semibold text-slate-800">
                 No pending tuitions found
               </h4>
@@ -261,10 +261,10 @@ export default function AdminTuitionsPage() {
                       </div>
 
                       <div className="flex flex-wrap gap-x-5 gap-y-2 text-sm text-slate-500">
-                        <span>📖 {tuition.subject}</span>
-                        <span>📍 {tuition.location}</span>
+                        <span>ðŸ“– {tuition.subject}</span>
+                        <span>ðŸ“ {tuition.location}</span>
                         <span>
-                          💰 ৳
+                          ðŸ’° à§³
                           {Number(tuition.salary).toLocaleString("en-BD")}
                         </span>
                       </div>
@@ -342,7 +342,7 @@ export default function AdminTuitionsPage() {
                 onClick={() => setSelectedTuition(null)}
                 className="rounded-lg px-3 py-1 text-xl text-slate-500 hover:bg-slate-100"
               >
-                ×
+                Ã—
               </button>
             </div>
 
@@ -383,7 +383,7 @@ export default function AdminTuitionsPage() {
               <div>
                 <p className="text-xs text-slate-500">Salary</p>
                 <p className="mt-1 font-medium text-slate-800">
-                  ৳
+                  à§³
                   {Number(selectedTuition.salary).toLocaleString("en-BD")}
                 </p>
               </div>

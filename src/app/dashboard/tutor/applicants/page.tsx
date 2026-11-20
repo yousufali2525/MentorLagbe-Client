@@ -22,7 +22,7 @@ import {
 } from "lucide-react";
 
 const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+  process.env.NODE_ENV === "development" ? "http://localhost:5000" : "";
 
 const ITEMS_PER_PAGE = 8;
 
@@ -124,7 +124,7 @@ export default function TutorApplicantsPage() {
 
       if (!response.ok || !result.success) {
         throw new Error(
-          result.message || "Applicants load করা যায়নি।"
+          result.message || "Applicants load à¦•à¦°à¦¾ à¦¯à¦¾à§Ÿà¦¨à¦¿à¥¤"
         );
       }
 
@@ -170,14 +170,14 @@ export default function TutorApplicantsPage() {
     }
 
     if (!applicationId) {
-      showNotification("error", "Application ID পাওয়া যায়নি।");
+      showNotification("error", "Application ID à¦ªà¦¾à¦“à§Ÿà¦¾ à¦¯à¦¾à§Ÿà¦¨à¦¿à¥¤");
       return;
     }
 
     const confirmed = window.confirm(
-      `তুমি কি এই application টি ${
+      `à¦¤à§à¦®à¦¿ à¦•à¦¿ à¦à¦‡ application à¦Ÿà¦¿ ${
         status === "accepted" ? "Accept" : "Reject"
-      } করতে চাও?`
+      } à¦•à¦°à¦¤à§‡ à¦šà¦¾à¦“?`
     );
 
     if (!confirmed) return;
@@ -210,7 +210,7 @@ export default function TutorApplicantsPage() {
 
       if (!response.ok || !result.success) {
         throw new Error(
-          result.message || "Application update করা যায়নি।"
+          result.message || "Application update à¦•à¦°à¦¾ à¦¯à¦¾à§Ÿà¦¨à¦¿à¥¤"
         );
       }
 
@@ -356,7 +356,7 @@ export default function TutorApplicantsPage() {
               Applicants Management
             </h1>
             <p className="mt-2 text-sm text-[#647875]">
-              তোমার tuition-এ যারা application করেছে তাদের manage করো।
+              à¦¤à§‹à¦®à¦¾à¦° tuition-à¦ à¦¯à¦¾à¦°à¦¾ application à¦•à¦°à§‡à¦›à§‡ à¦¤à¦¾à¦¦à§‡à¦° manage à¦•à¦°à§‹à¥¤
             </p>
           </div>
 
@@ -435,7 +435,7 @@ export default function TutorApplicantsPage() {
                   All Applicants
                 </h2>
                 <p className="mt-1 text-sm text-[#82918c]">
-                  মোট {filteredApplicants.length} জন applicant পাওয়া গেছে।
+                  à¦®à§‹à¦Ÿ {filteredApplicants.length} à¦œà¦¨ applicant à¦ªà¦¾à¦“à§Ÿà¦¾ à¦—à§‡à¦›à§‡à¥¤
                 </p>
               </div>
 
@@ -492,8 +492,8 @@ export default function TutorApplicantsPage() {
 
               <p className="mt-2 text-sm text-[#82918c]">
                 {applicants.length === 0
-                  ? "তোমার tuition-এ এখনো কেউ application করেনি।"
-                  : "তোমার search অথবা filter অনুযায়ী কোনো applicant পাওয়া যায়নি।"}
+                  ? "à¦¤à§‹à¦®à¦¾à¦° tuition-à¦ à¦à¦–à¦¨à§‹ à¦•à§‡à¦‰ application à¦•à¦°à§‡à¦¨à¦¿à¥¤"
+                  : "à¦¤à§‹à¦®à¦¾à¦° search à¦…à¦¥à¦¬à¦¾ filter à¦…à¦¨à§à¦¯à¦¾à§Ÿà§€ à¦•à§‹à¦¨à§‹ applicant à¦ªà¦¾à¦“à§Ÿà¦¾ à¦¯à¦¾à§Ÿà¦¨à¦¿à¥¤"}
               </p>
             </div>
           ) : (
@@ -566,7 +566,7 @@ export default function TutorApplicantsPage() {
                               <p className="mt-1 flex items-center gap-2 text-sm font-semibold text-[#23413c]">
                                 <Wallet size={15} className="text-[#087f6e]" />
                                 {typeof tuition?.salary === "number"
-                                  ? `৳${tuition.salary.toLocaleString("en-BD")}`
+                                  ? `à§³${tuition.salary.toLocaleString("en-BD")}`
                                   : "N/A"}
                               </p>
                             </div>
@@ -666,7 +666,7 @@ export default function TutorApplicantsPage() {
               <div className="flex flex-col items-center justify-between gap-4 border-t border-[#e3ebe8] px-5 py-4 sm:flex-row">
                 <p className="text-sm text-[#82918c]">
                   Showing{" "}
-                  {(currentPage - 1) * ITEMS_PER_PAGE + 1}–
+                  {(currentPage - 1) * ITEMS_PER_PAGE + 1}â€“
                   {Math.min(
                     currentPage * ITEMS_PER_PAGE,
                     filteredApplicants.length

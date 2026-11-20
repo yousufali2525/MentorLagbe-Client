@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 
 const API_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+  process.env.NODE_ENV === "development" ? "http://localhost:5000" : "";
 
 type User = {
   name: string;
@@ -280,12 +280,12 @@ export default function TutorDashboard() {
                           {tuition.title}
                         </h4>
                         <p className="mt-1 text-xs text-[#82918c]">
-                          {tuition.subject} • {tuition.location}
+                          {tuition.subject} â€¢ {tuition.location}
                         </p>
 
                         {tuition.salary !== undefined && (
                           <p className="mt-1 text-xs text-[#647875]">
-                            Monthly Salary: ৳{tuition.salary}
+                            Monthly Salary: à§³{tuition.salary}
                           </p>
                         )}
                       </div>
