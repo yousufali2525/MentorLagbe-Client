@@ -165,7 +165,7 @@ export default function Footer() {
                 href="tel:+8801521748537"
                 className="transition hover:text-[#62c9ad]"
               >
-                01521748537
+                +8801521748537
               </a>
             </li>
 
