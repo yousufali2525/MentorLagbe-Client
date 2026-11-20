@@ -1,12 +1,28 @@
 
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Check,
   Crown,
   GraduationCap,
   Sparkles,
   ArrowRight,
+  LoaderCircle,
 } from "lucide-react";
+
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+
+type User = {
+  id?: string;
+  name?: string;
+  email?: string;
+  role?: string;
+  plan?: string;
+};
 
 const plans = [
   {
@@ -16,6 +32,8 @@ const plans = [
     period: "Forever",
     description: "Start finding the right tutor for your learning journey.",
     icon: GraduationCap,
+    role: "student",
+    isPro: false,
     features: [
       "Browse approved tuition listings",
       "Apply for available tuitions",
@@ -33,6 +51,8 @@ const plans = [
     period: "One-time subscription",
     description: "Unlock a premium experience for your education journey.",
     icon: Sparkles,
+    role: "student",
+    isPro: true,
     features: [
       "Everything in Student Free",
       "Premium student membership",
@@ -50,6 +70,8 @@ const plans = [
     period: "Forever",
     description: "Start teaching and connect with students.",
     icon: GraduationCap,
+    role: "tutor",
+    isPro: false,
     features: [
       "Post up to 2 tuition listings",
       "Manage your tuition posts",
@@ -67,6 +89,8 @@ const plans = [
     period: "One-time subscription",
     description: "Grow your tutoring career without posting limits.",
     icon: Crown,
+    role: "tutor",
+    isPro: true,
     features: [
       "Everything in Tutor Free",
       "Unlimited tuition posts",
@@ -80,6 +104,95 @@ const plans = [
 ];
 
 export default function PricingPage() {
+  const router = useRouter();
+  const [loadingPlan, setLoadingPlan] = useState("");
+  const [error, setError] = useState("");
+
+  const handleProUpgrade = async (selectedRole: string) => {
+    setError("");
+
+    try {
+      setLoadingPlan(selectedRole);
+
+      let token = localStorage.getItem("mentorlagbe-token");
+      let savedUser = localStorage.getItem("mentorlagbe-user");
+      let user: User | null = null;
+
+      if (token && savedUser) {
+        try {
+          user = JSON.parse(savedUser) as User;
+        } catch {
+          localStorage.removeItem("mentorlagbe-user");
+          user = null;
+        }
+      }
+
+      if (!token || !user) {
+        const tokenResponse = await fetch(`${API_URL}/api/token`, {
+          method: "GET",
+          credentials: "include",
+        });
+
+        const tokenResult = await tokenResponse.json();
+
+        if (!tokenResponse.ok || !tokenResult.token || !tokenResult.user) {
+          router.push(`/sign-in?role=${selectedRole}&plan=pro`);
+          return;
+        }
+
+        token = tokenResult.token;
+        user = tokenResult.user as User;
+
+        localStorage.setItem("mentorlagbe-token", String(token));
+        localStorage.setItem("mentorlagbe-user", JSON.stringify(user));
+      }
+
+      const userRole = String(user.role || "").toLowerCase();
+
+      if (userRole !== selectedRole) {
+        setError(
+          `This Pro plan is for ${selectedRole}s. Please use your ${selectedRole} account.`
+        );
+        return;
+      }
+
+      if (String(user.plan || "").toLowerCase() === "pro") {
+        router.push(`/dashboard/${userRole}`);
+        return;
+      }
+
+      const response = await fetch(
+        `${API_URL}/api/payments/create-checkout-session`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          credentials: "include",
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok || !result.url) {
+        throw new Error(
+          result.message || "Unable to start Stripe Checkout."
+        );
+      }
+
+      window.location.assign(result.url);
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Something went wrong. Please try again."
+      );
+    } finally {
+      setLoadingPlan("");
+    }
+  };
+
   return (
     <main className="min-h-screen bg-[#f7faf8]">
       <section className="border-b border-[#e3ebe8] bg-white px-5 py-16 text-center sm:py-20">
@@ -99,9 +212,19 @@ export default function PricingPage() {
       </section>
 
       <section className="mx-auto max-w-7xl px-5 py-14 sm:px-8 lg:px-10 lg:py-16">
+        {error && (
+          <div
+            role="alert"
+            className="mx-auto mb-6 max-w-2xl rounded-xl border border-red-200 bg-red-50 p-4 text-center text-sm text-red-700"
+          >
+            {error}
+          </div>
+        )}
+
         <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
           {plans.map((plan) => {
             const Icon = plan.icon;
+            const isLoading = loadingPlan === plan.role && plan.isPro;
 
             return (
               <article
@@ -177,6 +300,7 @@ export default function PricingPage() {
                       >
                         <Check size={13} strokeWidth={3} />
                       </span>
+
                       <span
                         className={
                           plan.featured ? "text-white/90" : "text-[#526763]"
@@ -188,22 +312,34 @@ export default function PricingPage() {
                   ))}
                 </ul>
 
-                <Link
-                  href={plan.href}
-                  className={`mt-8 flex h-12 items-center justify-center gap-2 rounded-xl px-4 text-sm font-bold transition ${
-                    plan.featured
-                      ? "!bg-white !text-black hover:!bg-[#e8f5f1]"
-                      : "bg-[#087f6e] text-white hover:bg-[#066657]"
-                  }`}
-                  style={
-                    plan.featured
-                      ? { color: "#000000", backgroundColor: "#ffffff" }
-                      : undefined
-                  }
-                >
-                  {plan.button}
-                  <ArrowRight size={16} />
-                </Link>
+                {plan.isPro ? (
+                  <button
+                    type="button"
+                    disabled={loadingPlan !== ""}
+                    onClick={() => handleProUpgrade(plan.role)}
+                    className="mt-8 flex h-12 items-center justify-center gap-2 rounded-xl bg-white px-4 text-sm font-bold text-black transition hover:bg-[#e8f5f1] disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {isLoading ? (
+                      <>
+                        <LoaderCircle size={17} className="animate-spin" />
+                        Processing...
+                      </>
+                    ) : (
+                      <>
+                        {plan.button}
+                        <ArrowRight size={16} />
+                      </>
+                    )}
+                  </button>
+                ) : (
+                  <Link
+                    href={plan.href}
+                    className="mt-8 flex h-12 items-center justify-center gap-2 rounded-xl bg-[#087f6e] px-4 text-sm font-bold text-white transition hover:bg-[#066657]"
+                  >
+                    {plan.button}
+                    <ArrowRight size={16} />
+                  </Link>
+                )}
               </article>
             );
           })}
@@ -213,10 +349,12 @@ export default function PricingPage() {
           <h2 className="text-xl font-extrabold text-[#142c2b]">
             Not sure which plan to choose?
           </h2>
+
           <p className="mx-auto mt-3 max-w-xl text-sm leading-7 text-[#647875]">
             Start with a free account. You can explore MentorLagbe and upgrade
             your membership when you are ready.
           </p>
+
           <Link
             href="/sign-up"
             className="mt-6 inline-flex items-center gap-2 rounded-xl bg-[#087f6e] px-6 py-3 text-sm font-bold text-white transition hover:bg-[#066657]"

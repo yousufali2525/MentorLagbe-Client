@@ -157,12 +157,6 @@ export default function AdminTuitionsPage() {
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem("mentorlagbe-token");
-    localStorage.removeItem("mentorlagbe-user");
-    router.replace("/sign-in");
-  };
-
   const filteredTuitions = tuitions.filter((tuition) => {
     const value = search.toLowerCase();
 
@@ -176,62 +170,8 @@ export default function AdminTuitionsPage() {
   });
 
   return (
-    <div className="min-h-screen bg-slate-50 md:flex">
-      <aside className="w-full bg-slate-950 text-white md:min-h-screen md:w-64">
-        <div className="border-b border-slate-800 px-6 py-6">
-          <h1 className="text-2xl font-bold text-teal-400">
-            MentorLagbe
-          </h1>
-          <p className="mt-1 text-sm text-slate-400">
-            Admin Dashboard
-          </p>
-        </div>
-
-        <nav className="space-y-2 p-4">
-          {[
-            { label: "Overview", href: "/dashboard/admin", icon: "📊" },
-            {
-              label: "Manage Users",
-              href: "/dashboard/admin/users",
-              icon: "👥",
-            },
-            {
-              label: "Manage Tuitions",
-              href: "/dashboard/admin/tuitions",
-              icon: "📚",
-            },
-            {
-              label: "Transactions",
-              href: "/dashboard/admin/transactions",
-              icon: "💳",
-            },
-          ].map((item) => (
-            <button
-              key={item.href}
-              onClick={() => router.push(item.href)}
-              className={`flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left transition ${
-                item.href === "/dashboard/admin/tuitions"
-                  ? "bg-teal-600 text-white"
-                  : "text-slate-300 hover:bg-slate-800"
-              }`}
-            >
-              <span>{item.icon}</span>
-              {item.label}
-            </button>
-          ))}
-        </nav>
-
-        <div className="border-t border-slate-800 p-4 md:mt-8">
-          <button
-            onClick={handleLogout}
-            className="w-full rounded-lg bg-red-600 px-4 py-3 font-medium text-white hover:bg-red-700"
-          >
-            Sign Out
-          </button>
-        </div>
-      </aside>
-
-      <main className="min-w-0 flex-1 p-5 md:p-8">
+    <div className="min-h-screen bg-slate-50">
+      <main className="min-w-0 p-5 md:p-8">
         <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
           <div>
             <p className="text-sm font-medium text-teal-600">

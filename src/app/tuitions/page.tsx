@@ -2,6 +2,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import type { FormEvent } from "react";
 import Link from "next/link";
 import {
   Search,
@@ -29,6 +30,7 @@ type Tuition = {
   daysPerWeek?: number;
   tutorName?: string;
   description?: string;
+  banner?: string;
 };
 
 const subjects = [
@@ -62,7 +64,7 @@ const classLevels = [
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
-export default function TuitionsPage() {
+function TuitionsPageContent() {
   const [tuitions, setTuitions] = useState<Tuition[]>([]);
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
@@ -142,8 +144,8 @@ export default function TuitionsPage() {
           setTotalItems(
             Number(
               pagination.totalItems ??
-              pagination.total ??
-              list.length
+                pagination.total ??
+                list.length
             )
           );
         } else {
@@ -178,9 +180,7 @@ export default function TuitionsPage() {
     };
   }, [search, subject, classLevel, mode, page]);
 
-  const handleSearch = (
-    event: React.FormEvent<HTMLFormElement>
-  ) => {
+  const handleSearch = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setPage(1);
     setSearch(searchInput.trim());
@@ -378,6 +378,27 @@ export default function TuitionsPage() {
                   key={tuitionId || `tuition-${index}`}
                   className="group flex h-full flex-col overflow-hidden rounded-2xl border border-[#e3ebe8] bg-white p-5 shadow-[0_5px_20px_rgba(20,44,43,0.035)] transition duration-300 hover:-translate-y-1 hover:border-[#b7d9cd] hover:shadow-[0_15px_35px_rgba(20,44,43,0.09)] sm:p-6"
                 >
+                  <div className="-mx-5 -mt-5 mb-5 h-44 overflow-hidden bg-[#e8f5f1] sm:-mx-6 sm:-mt-6">
+                    {tuition.banner ? (
+                      <img
+                        src={tuition.banner}
+                        alt={tuition.title || "Tuition"}
+                        loading="lazy"
+                        className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+                        onError={(event) => {
+                          event.currentTarget.style.display = "none";
+                        }}
+                      />
+                    ) : (
+                      <div className="flex h-full items-center justify-center">
+                        <GraduationCap
+                          size={55}
+                          className="text-[#087f6e]"
+                        />
+                      </div>
+                    )}
+                  </div>
+
                   <div className="flex items-start justify-between gap-3">
                     <span className="rounded-lg bg-[#e8f5f1] px-3 py-1.5 text-xs font-bold text-[#087f6e]">
                       {tuition.subject || "General"}
@@ -394,19 +415,28 @@ export default function TuitionsPage() {
 
                   <div className="mt-5 space-y-3 text-sm text-[#647875]">
                     <div className="flex items-center gap-2.5">
-                      <GraduationCap size={17} className="shrink-0 text-[#087f6e]" />
+                      <GraduationCap
+                        size={17}
+                        className="shrink-0 text-[#087f6e]"
+                      />
                       <span>{level}</span>
                     </div>
 
                     <div className="flex items-center gap-2.5">
-                      <MapPin size={17} className="shrink-0 text-[#087f6e]" />
+                      <MapPin
+                        size={17}
+                        className="shrink-0 text-[#087f6e]"
+                      />
                       <span className="line-clamp-1">
                         {tuition.location || "Location not specified"}
                       </span>
                     </div>
 
                     <div className="flex items-center gap-2.5">
-                      <CalendarDays size={17} className="shrink-0 text-[#087f6e]" />
+                      <CalendarDays
+                        size={17}
+                        className="shrink-0 text-[#087f6e]"
+                      />
                       <span>
                         {tuition.daysPerWeek
                           ? `${tuition.daysPerWeek} days per week`
@@ -415,7 +445,10 @@ export default function TuitionsPage() {
                     </div>
 
                     <div className="flex items-center gap-2.5">
-                      <Monitor size={17} className="shrink-0 text-[#087f6e]" />
+                      <Monitor
+                        size={17}
+                        className="shrink-0 text-[#087f6e]"
+                      />
                       <span>
                         Tutor: {tuition.tutorName || "MentorLagbe tutor"}
                       </span>
@@ -520,4 +553,8 @@ export default function TuitionsPage() {
       </main>
     </div>
   );
+}
+
+export default function TuitionsPage() {
+  return <TuitionsPageContent />;
 }

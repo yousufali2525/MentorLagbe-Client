@@ -2,6 +2,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import type { ChangeEvent, FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -38,6 +39,7 @@ export default function TutorProfilePage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+
   const [notification, setNotification] = useState({
     type: "",
     message: "",
@@ -52,10 +54,13 @@ export default function TutorProfilePage() {
   };
 
   const fetchProfile = useCallback(async () => {
+    setLoading(true);
+
     const token = localStorage.getItem("mentorlagbe-token");
     const storedUser = localStorage.getItem("mentorlagbe-user");
 
     if (!token || !storedUser) {
+      setLoading(false);
       router.replace("/sign-in");
       return;
     }
@@ -64,6 +69,7 @@ export default function TutorProfilePage() {
       const user = JSON.parse(storedUser);
 
       if (user.role !== "tutor") {
+        setLoading(false);
         router.replace(`/dashboard/${user.role || "student"}`);
         return;
       }
@@ -84,26 +90,29 @@ export default function TutorProfilePage() {
         return;
       }
 
-      if (!response.ok || !result.success) {
-        throw new Error(result.message || "Profile load করা যায়নি।");
+      if (!response.ok || !result.success || !result.user) {
+        throw new Error(result.message || "Failed to load profile.");
       }
 
+      const userData = result.user;
+
       setProfile({
-        ...result.user,
-        phone: result.user.phone || "",
-        location: result.user.location || "",
-        bio: result.user.bio || "",
-        profileImage: result.user.profileImage || "",
+        ...userData,
+        phone: userData.phone || "",
+        location: userData.location || "",
+        bio: userData.bio || "",
+        profileImage: userData.profileImage || "",
       });
 
       localStorage.setItem(
         "mentorlagbe-user",
         JSON.stringify({
           ...user,
-          name: result.user.name,
-          email: result.user.email,
-          role: result.user.role,
-          plan: result.user.plan,
+          name: userData.name,
+          email: userData.email,
+          role: userData.role,
+          plan: userData.plan,
+          profileImage: userData.profileImage || "",
         })
       );
     } catch (error) {
@@ -121,7 +130,7 @@ export default function TutorProfilePage() {
   }, [fetchProfile]);
 
   const handleChange = (
-    event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = event.target;
 
@@ -132,29 +141,25 @@ export default function TutorProfilePage() {
   };
 
   const handleImageUpload = async (
-    event: React.ChangeEvent<HTMLInputElement>
+    event: ChangeEvent<HTMLInputElement>
   ) => {
     const file = event.target.files?.[0];
 
     if (!file) return;
 
-    const allowedTypes = [
-      "image/png",
-      "image/jpeg",
-      "image/webp",
-    ];
+    const allowedTypes = ["image/png", "image/jpeg", "image/webp"];
 
     if (!allowedTypes.includes(file.type)) {
       showNotification(
         "error",
-        "শুধু PNG, JPG অথবা WEBP image upload করতে পারবে।"
+        "Only PNG, JPG, or WEBP images are allowed."
       );
       event.target.value = "";
       return;
     }
 
     if (file.size > 8 * 1024 * 1024) {
-      showNotification("error", "Image size অবশ্যই 8 MB-এর কম হতে হবে।");
+      showNotification("error", "Image size must not exceed 8 MB.");
       event.target.value = "";
       return;
     }
@@ -176,15 +181,15 @@ export default function TutorProfilePage() {
           if (typeof reader.result === "string") {
             resolve(reader.result);
           } else {
-            reject(new Error("Image read করা যায়নি।"));
+            reject(new Error("Unable to read image."));
           }
         };
 
-        reader.onerror = () => reject(new Error("Image read failed."));
+        reader.onerror = () => reject(new Error("Image reading failed."));
         reader.readAsDataURL(file);
       });
 
-      const response = await fetch(`${API_URL}/api/upload`, {
+      const response = await fetch(`${API_URL}/api/upload/image`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -198,6 +203,13 @@ export default function TutorProfilePage() {
 
       const result = await response.json();
 
+      if (response.status === 401) {
+        localStorage.removeItem("mentorlagbe-token");
+        localStorage.removeItem("mentorlagbe-user");
+        router.replace("/sign-in");
+        return;
+      }
+
       if (!response.ok || !result.success) {
         throw new Error(result.message || "Image upload failed.");
       }
@@ -205,7 +217,7 @@ export default function TutorProfilePage() {
       const imageUrl = result.data?.url;
 
       if (!imageUrl) {
-        throw new Error("Uploaded image URL পাওয়া যায়নি।");
+        throw new Error("Uploaded image URL was not found.");
       }
 
       setProfile((previous) => ({
@@ -215,7 +227,7 @@ export default function TutorProfilePage() {
 
       showNotification(
         "success",
-        "Image upload হয়েছে। Profile Save করলে পরিবর্তনটি সংরক্ষিত হবে।"
+        "Image uploaded successfully. Save your profile to apply the changes."
       );
     } catch (error) {
       showNotification(
@@ -231,7 +243,7 @@ export default function TutorProfilePage() {
     }
   };
 
-  const handleSave = async (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSave = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     const token = localStorage.getItem("mentorlagbe-token");
@@ -242,7 +254,15 @@ export default function TutorProfilePage() {
     }
 
     if (!profile.name.trim()) {
-      showNotification("error", "Name দেওয়া বাধ্যতামূলক।");
+      showNotification("error", "Name is required.");
+      return;
+    }
+
+    if (uploading) {
+      showNotification(
+        "error",
+        "Please wait until the image upload finishes before saving."
+      );
       return;
     }
 
@@ -273,16 +293,18 @@ export default function TutorProfilePage() {
         return;
       }
 
-      if (!response.ok || !result.success) {
-        throw new Error(result.message || "Profile update করা যায়নি।");
+      if (!response.ok || !result.success || !result.user) {
+        throw new Error(result.message || "Failed to update profile.");
       }
 
+      const userData = result.user;
+
       setProfile({
-        ...result.user,
-        phone: result.user.phone || "",
-        location: result.user.location || "",
-        bio: result.user.bio || "",
-        profileImage: result.user.profileImage || "",
+        ...userData,
+        phone: userData.phone || "",
+        location: userData.location || "",
+        bio: userData.bio || "",
+        profileImage: userData.profileImage || "",
       });
 
       const storedUser = JSON.parse(
@@ -293,12 +315,15 @@ export default function TutorProfilePage() {
         "mentorlagbe-user",
         JSON.stringify({
           ...storedUser,
-          name: result.user.name,
-          email: result.user.email,
-          role: result.user.role,
-          plan: result.user.plan,
+          name: userData.name,
+          email: userData.email,
+          role: userData.role,
+          plan: userData.plan,
+          profileImage: userData.profileImage || "",
         })
       );
+
+      window.dispatchEvent(new Event("user-updated"));
 
       showNotification("success", "Profile successfully updated.");
     } catch (error) {
@@ -352,6 +377,7 @@ export default function TutorProfilePage() {
           >
             MentorLagbe
           </Link>
+
           <p className="mt-1 text-sm text-gray-500">Tutor Dashboard</p>
         </div>
 
@@ -399,8 +425,9 @@ export default function TutorProfilePage() {
             <h1 className="text-2xl font-bold text-gray-900 sm:text-3xl">
               My Profile
             </h1>
+
             <p className="mt-2 text-sm text-gray-500">
-              তোমার personal information এবং tutor profile update করো।
+              Update your personal information and tutor profile.
             </p>
           </div>
 
@@ -422,11 +449,11 @@ export default function TutorProfilePage() {
                 {profile.profileImage ? (
                   <img
                     src={profile.profileImage}
-                    alt="Profile"
+                    alt="Tutor profile"
                     className="h-full w-full object-cover"
                   />
                 ) : (
-                  profile.name?.charAt(0)?.toUpperCase() || "T"
+                  profile.name?.charAt(0).toUpperCase() || "T"
                 )}
               </div>
 
@@ -434,13 +461,14 @@ export default function TutorProfilePage() {
                 <h2 className="text-xl font-bold text-gray-900">
                   {profile.name}
                 </h2>
-                <p className="mt-1 text-sm text-gray-500">
-                  {profile.email}
-                </p>
+
+                <p className="mt-1 text-sm text-gray-500">{profile.email}</p>
+
                 <div className="mt-3 flex flex-wrap justify-center gap-2 sm:justify-start">
                   <span className="rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold capitalize text-indigo-700">
                     {profile.role}
                   </span>
+
                   <span className="rounded-full bg-green-50 px-3 py-1 text-xs font-semibold capitalize text-green-700">
                     {profile.plan || "Free"} Plan
                   </span>
@@ -457,8 +485,9 @@ export default function TutorProfilePage() {
               <h2 className="text-lg font-bold text-gray-900">
                 Personal Information
               </h2>
+
               <p className="mt-1 text-sm text-gray-500">
-                তোমার profile-এর তথ্যগুলো এখানে পরিবর্তন করতে পারবে।
+                You can update your profile information here.
               </p>
             </div>
 
@@ -472,7 +501,7 @@ export default function TutorProfilePage() {
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    disabled={uploading}
+                    disabled={uploading || saving}
                     className="w-fit rounded-lg border border-indigo-200 bg-indigo-50 px-4 py-2.5 text-sm font-semibold text-indigo-700 hover:bg-indigo-100 disabled:opacity-50"
                   >
                     {uploading ? "Uploading..." : "Choose Image"}
@@ -500,6 +529,7 @@ export default function TutorProfilePage() {
                   >
                     Full Name *
                   </label>
+
                   <input
                     id="name"
                     name="name"
@@ -520,6 +550,7 @@ export default function TutorProfilePage() {
                   >
                     Email Address
                   </label>
+
                   <input
                     id="email"
                     type="email"
@@ -536,6 +567,7 @@ export default function TutorProfilePage() {
                   >
                     Phone Number
                   </label>
+
                   <input
                     id="phone"
                     name="phone"
@@ -555,6 +587,7 @@ export default function TutorProfilePage() {
                   >
                     Location
                   </label>
+
                   <input
                     id="location"
                     name="location"
@@ -575,6 +608,7 @@ export default function TutorProfilePage() {
                 >
                   About Me / Bio
                 </label>
+
                 <textarea
                   id="bio"
                   name="bio"
@@ -585,6 +619,7 @@ export default function TutorProfilePage() {
                   className="w-full resize-y rounded-lg border border-gray-300 px-4 py-3 text-sm text-gray-800 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
                   placeholder="Tell students about your teaching experience, qualifications and expertise..."
                 />
+
                 <p className="mt-1 text-right text-xs text-gray-400">
                   {(profile.bio || "").length}/1000
                 </p>
@@ -595,6 +630,7 @@ export default function TutorProfilePage() {
                   <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">
                     Account Role
                   </p>
+
                   <p className="mt-1 text-sm font-semibold capitalize text-gray-800">
                     {profile.role}
                   </p>
@@ -604,6 +640,7 @@ export default function TutorProfilePage() {
                   <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">
                     Subscription Plan
                   </p>
+
                   <p className="mt-1 text-sm font-semibold capitalize text-gray-800">
                     {profile.plan || "Free"}
                   </p>
@@ -613,6 +650,7 @@ export default function TutorProfilePage() {
                   <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">
                     Member Since
                   </p>
+
                   <p className="mt-1 text-sm font-semibold text-gray-800">
                     {formatDate(profile.createdAt)}
                   </p>
@@ -624,15 +662,15 @@ export default function TutorProfilePage() {
               <button
                 type="button"
                 onClick={fetchProfile}
-                disabled={saving || uploading}
+                disabled={saving || uploading || loading}
                 className="rounded-lg border border-gray-300 px-5 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50"
               >
-                Reset Changes
+                {loading ? "Loading..." : "Reset Changes"}
               </button>
 
               <button
                 type="submit"
-                disabled={saving || uploading}
+                disabled={saving || uploading || loading}
                 className="rounded-lg bg-indigo-600 px-6 py-3 text-sm font-semibold text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {saving ? "Saving..." : "Save Changes"}
