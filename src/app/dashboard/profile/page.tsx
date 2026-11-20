@@ -81,11 +81,6 @@ export default function ProfilePage() {
         result.data ||
         result;
 
-      if (user.role && user.role !== "student") {
-        router.push("/dashboard");
-        return;
-      }
-
       const updatedProfile: Profile = {
         name: user.name || localUser.name || "",
         email: user.email || localUser.email || "",
@@ -334,7 +329,7 @@ export default function ProfilePage() {
     <div className="min-h-screen bg-[#f7faf8] px-4 py-8 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-4xl">
         <Link
-          href="/dashboard/student"
+          href="/dashboard"
           className="mb-6 inline-flex items-center gap-2 text-sm font-semibold text-[#087f6e] hover:text-[#066657]"
         >
           <ArrowLeft size={18} />
@@ -514,7 +509,7 @@ export default function ProfilePage() {
 
             <div className="flex flex-col-reverse gap-3 border-t border-[#e3ebe8] bg-[#fbfdfc] px-6 py-5 sm:flex-row sm:justify-end sm:px-8">
               <Link
-                href="/dashboard/student"
+                href="/dashboard"
                 className="rounded-xl border border-[#dce7e2] px-6 py-3 text-center text-sm font-semibold text-[#647875] transition hover:bg-[#f1f6f3]"
               >
                 Cancel
