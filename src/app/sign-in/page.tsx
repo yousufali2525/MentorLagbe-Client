@@ -110,6 +110,9 @@ function SignInForm() {
         JSON.stringify(user)
       );
 
+      window.dispatchEvent(new Event("auth-updated"));
+      window.dispatchEvent(new Event("user-updated"));
+
       const redirect = searchParams.get("redirect");
 
       if (
@@ -177,6 +180,9 @@ function SignInForm() {
         default:
           localStorage.removeItem("mentorlagbe-token");
           localStorage.removeItem("mentorlagbe-user");
+
+          window.dispatchEvent(new Event("auth-updated"));
+
           setError(
             "Your account role is not recognized. Please contact support."
           );
