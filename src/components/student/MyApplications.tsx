@@ -103,6 +103,8 @@ export default function MyApplications() {
             application.tuition?.tutorName ||
             application.tutorEmail ||
             "Not available",
+          tutorEmail:
+            application.tutorEmail || application.tuition?.tutorEmail || "",
           subject:
             application.subject ||
             application.tuition?.subject ||
@@ -249,7 +251,14 @@ export default function MyApplications() {
                         </p>
                       ) : null}
                     </td>
-                    <td>{row.tutor}</td>
+                    <td>
+                      <p>{row.tutor}</p>
+                      {row.tutorEmail ? (
+                        <p className="mt-1 break-all text-xs text-[var(--muted)]">
+                          {row.tutorEmail}
+                        </p>
+                      ) : null}
+                    </td>
                     <td>{row.applied}</td>
                     <td>{row.fee !== undefined ? formatFee(row.fee) : "—"}</td>
                     <td>
@@ -296,6 +305,11 @@ export default function MyApplications() {
                     <p className="mt-1 text-sm text-[var(--muted)]">
                       Tutor: {row.tutor}
                     </p>
+                    {row.tutorEmail ? (
+                      <p className="mt-1 break-all text-xs text-[var(--muted)]">
+                        {row.tutorEmail}
+                      </p>
+                    ) : null}
                     <p className="mt-1 text-xs text-[var(--muted)]">
                       {row.subject} · Applied: {row.applied}
                     </p>
