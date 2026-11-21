@@ -17,6 +17,7 @@ type Payment = {
   id?: string;
   stripeSessionId?: string;
   userId?: string;
+  userName?: string;
   email?: string;
   role?: string;
   plan?: string;
@@ -248,7 +249,12 @@ export default function AdminTransactionsPage() {
                     <p className="mt-1 text-xs">User ID: {payment.userId || "N/A"}</p>
                   </td>
                   <td>
-                    <p className="font-semibold text-[var(--foreground)]">
+                    {payment.userName ? (
+                      <p className="mb-1 font-medium text-[var(--foreground)]">
+                        {payment.userName}
+                      </p>
+                    ) : null}
+                    <p className="text-sm text-[var(--muted)]">
                       {payment.email || "Not available"}
                     </p>
                     <p className="mt-1 text-xs capitalize">{payment.role || "user"}</p>
