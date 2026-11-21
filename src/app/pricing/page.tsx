@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import {
   ArrowRight,
   Check,
@@ -29,6 +28,15 @@ type Plan = {
   button: string;
   href: string;
   featured: boolean;
+};
+
+type PlanAction = {
+  label: string;
+  href?: string;
+  onClick?: () => void;
+  disabled?: boolean;
+  loading?: boolean;
+  primary: boolean;
 };
 
 const plans: Plan[] = [
@@ -67,7 +75,7 @@ const plans: Plan[] = [
       "Priority support",
     ],
     button: "Upgrade to Student Pro",
-    href: "/sign-in?redirect=/pricing&role=student",
+    href: "/sign-up?role=student&plan=pro",
     featured: true,
   },
   {
@@ -105,37 +113,30 @@ const plans: Plan[] = [
       "Premium tutor membership",
     ],
     button: "Upgrade to Tutor Pro",
-    href: "/sign-in?redirect=/pricing&role=tutor",
+    href: "/sign-up?role=tutor&plan=pro",
     featured: true,
   },
 ];
 
 export default function PricingPage() {
-  const router = useRouter();
   const { user, status } = useAuth();
   const [loadingRole, setLoadingRole] = useState<"student" | "tutor" | null>(null);
 
+  const authLoading = status === "loading";
+  const currentRole = normalizeRole(user?.role);
+  const isAdmin = currentRole === "admin";
+  const isProUser = user?.plan?.toLowerCase() === "pro";
+
   async function handleUpgrade(plan: Plan) {
-    if (status === "loading") {
-      toast.info("Checking your session. Please try again in a moment.");
-      return;
-    }
-
-    if (!user) {
-      toast.info("Sign in to upgrade your plan.");
-      router.push(plan.href);
-      return;
-    }
-
-    const userRole = normalizeRole(user.role);
-    if (userRole !== plan.role) {
-      toast.error(`Please use your ${plan.role} account for this plan.`);
-      return;
-    }
-
-    if (user.plan?.toLowerCase() === "pro") {
-      toast.info("Your Pro plan is already active.");
-      router.push(dashboardHrefForRole(userRole));
+    if (
+      authLoading ||
+      !user ||
+      !currentRole ||
+      isAdmin ||
+      !plan.isPro ||
+      currentRole !== plan.role ||
+      isProUser
+    ) {
       return;
     }
 
@@ -163,6 +164,54 @@ export default function PricingPage() {
     }
   }
 
+  function planAction(plan: Plan): PlanAction {
+    if (authLoading) {
+      return { label: "Checking session...", disabled: true, primary: plan.featured };
+    }
+
+    if (isAdmin) {
+      return {
+        label: "Admins don't need a plan",
+        disabled: true,
+        primary: plan.featured,
+      };
+    }
+
+    if (!user || !currentRole) {
+      return { label: plan.button, href: plan.href, primary: plan.featured };
+    }
+
+    if (!plan.isPro) {
+      return {
+        label:
+          currentRole === plan.role && !isProUser ? "Current Plan" : "Included",
+        disabled: true,
+        primary: false,
+      };
+    }
+
+    if (isProUser) {
+      return { label: "You're on Pro", disabled: true, primary: plan.featured };
+    }
+
+    if (currentRole !== plan.role) {
+      return {
+        label:
+          plan.role === "tutor" ? "For Tutors only" : "For Students only",
+        disabled: true,
+        primary: plan.featured,
+      };
+    }
+
+    return {
+      label: "Upgrade to Pro",
+      onClick: () => handleUpgrade(plan),
+      disabled: loadingRole !== null,
+      loading: loadingRole === plan.role,
+      primary: plan.featured,
+    };
+  }
+
   return (
     <main className="min-h-screen bg-[var(--background)]">
       <section className="border-b border-[var(--border)] bg-[var(--surface)] px-5 py-16 text-center sm:py-20">
@@ -186,11 +235,7 @@ export default function PricingPage() {
         <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
           {plans.map((plan) => {
             const Icon = plan.icon;
-            const isProActive =
-              plan.isPro &&
-              user?.plan?.toLowerCase() === "pro" &&
-              normalizeRole(user?.role) === plan.role;
-            const isLoading = loadingRole === plan.role;
+            const action = planAction(plan);
 
             return (
               <article
@@ -245,45 +290,33 @@ export default function PricingPage() {
                   ))}
                 </ul>
 
-                {plan.isPro ? (
-                  isProActive ? (
-                    <Link
-                      href={dashboardHrefForRole(plan.role)}
-                      className="btn-primary mt-8 h-12 w-full justify-center"
-                    >
-                      Go to Dashboard
-                      <ArrowRight size={16} />
-                    </Link>
-                  ) : (
-                    <button
-                      type="button"
-                      disabled={loadingRole !== null}
-                      onClick={() => handleUpgrade(plan)}
-                      className={`mt-8 h-12 w-full justify-center ${
-                        plan.featured ? "btn-primary" : "btn-secondary"
-                      }`}
-                    >
-                      {isLoading ? (
-                        <>
-                          <LoaderCircle size={17} className="animate-spin" />
-                          Opening Checkout...
-                        </>
-                      ) : (
-                        <>
-                          {plan.button}
-                          <ArrowRight size={16} />
-                        </>
-                      )}
-                    </button>
-                  )
-                ) : (
+                {action.href ? (
                   <Link
-                    href={plan.href}
-                    className="btn-secondary mt-8 h-12 w-full justify-center"
+                    href={action.href}
+                    className={`${
+                      action.primary ? "btn-primary" : "btn-secondary"
+                    } mt-8 h-12 w-full justify-center`}
                   >
-                    {plan.button}
+                    {action.label}
                     <ArrowRight size={16} />
                   </Link>
+                ) : (
+                  <button
+                    type="button"
+                    disabled={action.disabled}
+                    onClick={action.onClick}
+                    className={`${
+                      action.primary ? "btn-primary" : "btn-secondary"
+                    } mt-8 h-12 w-full justify-center`}
+                  >
+                    {action.loading ? (
+                      <LoaderCircle size={17} className="animate-spin" />
+                    ) : null}
+                    {action.label}
+                    {!action.loading && action.onClick ? (
+                      <ArrowRight size={16} />
+                    ) : null}
+                  </button>
                 )}
               </article>
             );
@@ -296,10 +329,24 @@ export default function PricingPage() {
             Start with a free account. You can explore MentorLagbe and upgrade
             your membership when you are ready.
           </p>
-          <Link href="/sign-up" className="btn-primary mt-6 px-6">
-            Create Free Account
-            <ArrowRight size={17} />
-          </Link>
+          {authLoading ? (
+            <button type="button" disabled className="btn-primary mt-6 px-6">
+              Checking session...
+            </button>
+          ) : user ? (
+            <Link
+              href={dashboardHrefForRole(currentRole)}
+              className="btn-primary mt-6 px-6"
+            >
+              Go to Dashboard
+              <ArrowRight size={17} />
+            </Link>
+          ) : (
+            <Link href="/sign-up" className="btn-primary mt-6 px-6">
+              Create Free Account
+              <ArrowRight size={17} />
+            </Link>
+          )}
         </div>
       </section>
     </main>

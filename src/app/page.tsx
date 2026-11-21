@@ -10,6 +10,7 @@ import {
   CheckCircle2,
   Clock3,
   GraduationCap,
+  LoaderCircle,
   MapPin,
   Monitor,
   Quote,
@@ -23,7 +24,7 @@ import {
 import { useAuth } from "@/components/AuthProvider";
 import { toast } from "@/components/ToastProvider";
 import { apiFetch } from "@/lib/api";
-import { normalizeRole } from "@/lib/roles";
+import { dashboardHrefForRole, normalizeRole } from "@/lib/roles";
 import {
   bannerOf,
   extractTuitionList,
@@ -33,6 +34,15 @@ import {
 } from "@/lib/tuitions";
 
 type PlanRole = "student" | "tutor";
+
+type PlanAction = {
+  label: string;
+  href?: string;
+  onClick?: () => void;
+  disabled?: boolean;
+  loading?: boolean;
+  primary: boolean;
+};
 
 const subjects = [
   { name: "Math", icon: "∑", color: "bg-[var(--surface-muted)] text-[var(--primary)]" },
@@ -132,6 +142,11 @@ export default function HomePage() {
   const [searchText, setSearchText] = useState("");
   const [checkoutLoading, setCheckoutLoading] = useState<PlanRole | null>(null);
 
+  const authLoading = status === "loading";
+  const currentRole = normalizeRole(user?.role);
+  const isAdmin = currentRole === "admin";
+  const isProUser = user?.plan?.toLowerCase() === "pro";
+
   useEffect(() => {
     let active = true;
 
@@ -162,30 +177,30 @@ export default function HomePage() {
   }
 
   async function subscribe(role: PlanRole) {
-    if (status === "loading") return;
-
-    if (!user) {
-      router.push(`/sign-up?role=${role}&plan=pro`);
-      return;
-    }
-
-    const currentRole = normalizeRole(user.role);
-    if (currentRole !== role) {
-      toast.error(`Please use your ${currentRole || "own"} account to upgrade.`);
-      return;
-    }
-
-    if (user.plan === "pro") {
-      toast.info("Your account is already on the Pro plan.");
+    if (
+      authLoading ||
+      !user ||
+      !currentRole ||
+      isAdmin ||
+      currentRole !== role ||
+      isProUser
+    ) {
       return;
     }
 
     try {
       setCheckoutLoading(role);
-      const checkout = await apiFetch<{ url: string }>(
+      toast.info("Opening secure Stripe Checkout...");
+
+      const checkout = await apiFetch<{ url?: string; message?: string }>(
         "/api/payments/create-checkout-session",
         { method: "POST" }
       );
+
+      if (!checkout.url) {
+        throw new Error(checkout.message || "Stripe did not return a checkout URL.");
+      }
+
       toast.info("Redirecting to Stripe Checkout...");
       window.location.assign(checkout.url);
     } catch (error) {
@@ -195,6 +210,59 @@ export default function HomePage() {
     } finally {
       setCheckoutLoading(null);
     }
+  }
+
+  function homePlanAction(role: PlanRole, pro: boolean): PlanAction {
+    if (authLoading) {
+      return { label: "Checking session...", disabled: true, primary: pro };
+    }
+
+    if (isAdmin) {
+      return {
+        label: "Admins don't need a plan",
+        disabled: true,
+        primary: pro,
+      };
+    }
+
+    if (!user || !currentRole) {
+      return {
+        label: pro ? "Subscribe with Stripe" : "Get started free",
+        href: pro
+          ? `/sign-up?role=${role}&plan=pro`
+          : `/sign-up?role=${role}`,
+        primary: pro,
+      };
+    }
+
+    if (!pro) {
+      return {
+        label:
+          currentRole === role && !isProUser ? "Current Plan" : "Included",
+        disabled: true,
+        primary: false,
+      };
+    }
+
+    if (isProUser) {
+      return { label: "You're on Pro", disabled: true, primary: true };
+    }
+
+    if (currentRole !== role) {
+      return {
+        label: role === "tutor" ? "For Tutors only" : "For Students only",
+        disabled: true,
+        primary: true,
+      };
+    }
+
+    return {
+      label: "Upgrade to Pro",
+      onClick: () => subscribe(role),
+      disabled: checkoutLoading !== null,
+      loading: checkoutLoading === role,
+      primary: true,
+    };
   }
 
   return (
@@ -632,8 +700,11 @@ export default function HomePage() {
               features: ["Everything in Free", "Unlimited tuition posts", "Profile highlight"],
               pro: true,
             },
-          ].map((plan) => (
-            <div
+          ].map((plan) => {
+            const action = homePlanAction(plan.role, plan.pro);
+
+            return (
+              <div
               key={plan.title}
               className={`card flex h-full flex-col p-6 ${
                 plan.pro ? "border-2 border-[var(--primary)]" : ""
@@ -659,27 +730,33 @@ export default function HomePage() {
                 ))}
               </ul>
 
-              {plan.pro ? (
+              {action.href ? (
+                <Link
+                  href={action.href}
+                  className={`${
+                    action.primary ? "btn-primary" : "btn-secondary"
+                  } mt-7 w-full justify-center py-3 text-sm`}
+                >
+                  {action.label}
+                </Link>
+              ) : (
                 <button
                   type="button"
-                  onClick={() => subscribe(plan.role)}
-                  disabled={checkoutLoading === plan.role}
-                  className="btn-primary mt-7 w-full justify-center py-3 text-sm"
+                  onClick={action.onClick}
+                  disabled={action.disabled}
+                  className={`${
+                    action.primary ? "btn-primary" : "btn-secondary"
+                  } mt-7 w-full justify-center py-3 text-sm`}
                 >
-                  {checkoutLoading === plan.role
-                    ? "Opening Checkout..."
-                    : "Subscribe with Stripe"}
+                  {action.loading ? (
+                    <LoaderCircle size={16} className="animate-spin" />
+                  ) : null}
+                  {action.label}
                 </button>
-              ) : (
-                <Link
-                  href={`/sign-up?role=${plan.role}`}
-                  className="btn-secondary mt-7 w-full justify-center py-3 text-sm"
-                >
-                  Get started free
-                </Link>
               )}
-            </div>
-          ))}
+              </div>
+            );
+          })}
         </div>
       </motion.section>
 
@@ -695,9 +772,26 @@ export default function HomePage() {
             Join MentorLagbe and find the right learning opportunity for your goals.
           </p>
           <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
-            <Link href="/sign-up" className="btn-primary justify-center px-7 py-4">
-              Create free account <ArrowRight size={17} />
-            </Link>
+            {authLoading ? (
+              <button
+                type="button"
+                disabled
+                className="btn-primary justify-center px-7 py-4"
+              >
+                Checking session...
+              </button>
+            ) : user ? (
+              <Link
+                href={dashboardHrefForRole(currentRole)}
+                className="btn-primary justify-center px-7 py-4"
+              >
+                Go to Dashboard <ArrowRight size={17} />
+              </Link>
+            ) : (
+              <Link href="/sign-up" className="btn-primary justify-center px-7 py-4">
+                Create free account <ArrowRight size={17} />
+              </Link>
+            )}
             <Link href="/tuitions" className="btn-secondary justify-center px-7 py-4">
               Browse tuitions
             </Link>
