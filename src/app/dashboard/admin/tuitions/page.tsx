@@ -1,12 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
+  ArrowRight,
   BookOpen,
   CheckCircle2,
-  Clock3,
   MapPin,
   RefreshCw,
   Search,
@@ -15,64 +15,119 @@ import {
 } from "lucide-react";
 import { toast } from "@/components/ToastProvider";
 import { apiFetch } from "@/lib/api";
-import { formatFee, tuitionFee, type Tuition } from "@/lib/tuitions";
+import { getPageNumbers } from "@/lib/pagination";
+import {
+  bannerOf,
+  formatFee,
+  tuitionFee,
+  type Tuition,
+} from "@/lib/tuitions";
 
-type PendingResponse = {
+type StatusTab = "all" | "pending" | "approved" | "rejected";
+
+type TuitionListResponse = {
   success?: boolean;
   total?: number;
+  page?: number;
+  limit?: number;
+  totalPages?: number;
   tuitions?: Tuition[];
+  data?: Tuition[];
 };
+
+const PAGE_SIZE = 10;
+
+const STATUS_TABS: { value: StatusTab; label: string }[] = [
+  { value: "all", label: "All" },
+  { value: "pending", label: "Pending" },
+  { value: "approved", label: "Approved" },
+  { value: "rejected", label: "Rejected" },
+];
+
+function statusStyle(status?: string) {
+  switch (status?.toLowerCase()) {
+    case "approved":
+      return "status-success";
+    case "rejected":
+      return "status-danger";
+    default:
+      return "status-warning";
+  }
+}
 
 export default function AdminTuitionsPage() {
   const [tuitions, setTuitions] = useState<Tuition[]>([]);
+  const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
+  const [status, setStatus] = useState<StatusTab>("all");
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
   const [selected, setSelected] = useState<Tuition | null>(null);
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState<string | null>(null);
 
-  const loadPending = useCallback(async (showToast = false) => {
-    setLoading(true);
-    try {
-      const result = await apiFetch<PendingResponse>(
-        "/api/admin/tuitions/pending"
-      );
-      setTuitions(Array.isArray(result.tuitions) ? result.tuitions : []);
-      if (showToast) toast.success("Pending tuitions refreshed.");
-    } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : "Unable to load pending tuitions."
-      );
-      setTuitions([]);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setSearch(searchInput.trim());
+      setPage(1);
+    }, 350);
+
+    return () => window.clearTimeout(timer);
+  }, [searchInput]);
+
+  const loadTuitions = useCallback(
+    async (showToast = false) => {
+      setLoading(true);
+
+      const params = new URLSearchParams({
+        page: String(page),
+        limit: String(PAGE_SIZE),
+      });
+      if (status !== "all") params.set("status", status);
+      if (search) params.set("search", search);
+
+      try {
+        const result = await apiFetch<TuitionListResponse>(
+          `/api/admin/tuitions?${params.toString()}`
+        );
+        const list = Array.isArray(result.tuitions)
+          ? result.tuitions
+          : Array.isArray(result.data)
+            ? result.data
+            : [];
+
+        setTuitions(list);
+        setTotal(Number(result.total) || list.length);
+        setTotalPages(Math.max(1, Number(result.totalPages) || 1));
+        if (showToast) toast.success("Tuitions refreshed.");
+      } catch (err) {
+        toast.error(
+          err instanceof Error ? err.message : "Unable to load tuitions."
+        );
+        setTuitions([]);
+        setTotal(0);
+        setTotalPages(1);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [page, search, status]
+  );
 
   useEffect(() => {
-    loadPending();
-  }, [loadPending]);
+    loadTuitions();
+  }, [loadTuitions]);
 
-  const filtered = useMemo(() => {
-    const value = search.trim().toLowerCase();
-    if (!value) return tuitions;
-    return tuitions.filter((tuition) =>
-      [
-        tuition.title,
-        tuition.subject,
-        tuition.location,
-        tuition.tutorName,
-        tuition.tutorEmail,
-      ]
-        .filter(Boolean)
-        .some((field) => field!.toLowerCase().includes(value))
-    );
-  }, [tuitions, search]);
+  useEffect(() => {
+    if (!loading && page > totalPages) setPage(totalPages);
+  }, [loading, page, totalPages]);
 
-  async function updateStatus(tuition: Tuition, status: "approved" | "rejected") {
+  async function updateStatus(tuition: Tuition, nextStatus: "approved" | "rejected") {
     const id = tuition._id || tuition.id;
     if (!id) return;
 
-    const action = status === "approved" ? "approve" : "reject";
+    const action = nextStatus === "approved" ? "approve" : "reject";
     if (!window.confirm(`Are you sure you want to ${action} this tuition?`)) return;
 
     try {
@@ -81,14 +136,12 @@ export default function AdminTuitionsPage() {
         `/api/tuitions/admin/${id}/status`,
         {
           method: "PATCH",
-          body: JSON.stringify({ status }),
+          body: JSON.stringify({ status: nextStatus }),
         }
       );
-      setTuitions((previous) =>
-        previous.filter((item) => (item._id || item.id) !== id)
-      );
       if (selected && (selected._id || selected.id) === id) setSelected(null);
-      toast.success(result.message || `Tuition ${status} successfully.`);
+      toast.success(result.message || `Tuition ${nextStatus} successfully.`);
+      await loadTuitions();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Unable to update status.");
     } finally {
@@ -107,12 +160,12 @@ export default function AdminTuitionsPage() {
         <div>
           <h1 className="section-title">Manage Tuitions</h1>
           <p className="mt-2 text-sm text-[var(--muted)]">
-            Review pending tuition requests and approve or reject them.
+            Review all tuitions and approve or reject them.
           </p>
         </div>
         <button
           type="button"
-          onClick={() => loadPending(true)}
+          onClick={() => loadTuitions(true)}
           disabled={loading}
           className="btn-secondary self-start sm:self-auto"
         >
@@ -124,36 +177,53 @@ export default function AdminTuitionsPage() {
       <div className="mb-6 grid gap-4 sm:grid-cols-2">
         <div className="card p-5">
           <div className="flex items-center justify-between gap-3">
-            <p className="text-sm text-[var(--muted)]">Pending Requests</p>
-            <Clock3 size={20} className="text-[var(--warning)]" />
+            <p className="text-sm text-[var(--muted)]">Total Results</p>
+            <BookOpen size={20} className="text-[var(--primary)]" />
           </div>
-          <p className="mt-3 text-3xl font-extrabold">{tuitions.length}</p>
+          <p className="mt-3 text-3xl font-extrabold">{total}</p>
         </div>
         <div className="card p-5">
           <div className="flex items-center justify-between gap-3">
-            <p className="text-sm text-[var(--muted)]">Filtered Results</p>
+            <p className="text-sm text-[var(--muted)]">On This Page</p>
             <Search size={20} className="text-[var(--primary)]" />
           </div>
-          <p className="mt-3 text-3xl font-extrabold">{filtered.length}</p>
+          <p className="mt-3 text-3xl font-extrabold">{tuitions.length}</p>
         </div>
       </div>
 
-      <p className="mb-4 text-xs text-[var(--muted)]">
-        A complete all-tuitions admin listing is not available in the current
-        API. Only pending requests are shown here.
-      </p>
-
       <div className="card overflow-hidden">
         <div className="border-b border-[var(--border)] p-5 sm:p-6">
+          <div className="mb-4 flex flex-wrap gap-2" role="tablist" aria-label="Tuition status">
+            {STATUS_TABS.map((tab) => (
+              <button
+                key={tab.value}
+                type="button"
+                role="tab"
+                aria-selected={status === tab.value}
+                onClick={() => {
+                  setStatus(tab.value);
+                  setPage(1);
+                }}
+                className={
+                  status === tab.value
+                    ? "btn-primary px-4 py-2 text-xs"
+                    : "btn-secondary px-4 py-2 text-xs"
+                }
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
           <div className="relative max-w-xl">
             <Search
               size={17}
               className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted)]"
             />
             <input
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="Search title, subject, location or tutor..."
+              value={searchInput}
+              onChange={(event) => setSearchInput(event.target.value)}
+              placeholder="Search title, subject or tutor..."
               className="field-input pl-10"
             />
           </div>
@@ -165,33 +235,33 @@ export default function AdminTuitionsPage() {
               <div key={index} className="skeleton h-28 rounded-xl" />
             ))}
           </div>
-        ) : filtered.length === 0 ? (
+        ) : tuitions.length === 0 ? (
           <div className="empty-state m-5 sm:m-6">
             <BookOpen className="mx-auto text-[var(--primary)]" size={30} />
             <h2 className="mt-4 text-lg font-bold">
-              {tuitions.length === 0
-                ? "No pending tuitions"
+              {status === "all" && !search
+                ? "No tuitions found"
                 : "No matching tuitions"}
             </h2>
             <p className="mx-auto mt-2 max-w-md text-sm text-[var(--muted)]">
-              {tuitions.length === 0
-                ? "New tuition requests will appear here when tutors submit them."
-                : "Try a different search term."}
+              Try a different status, search term or page.
             </p>
           </div>
         ) : (
           <div className="divide-y divide-[var(--border)]">
-            {filtered.map((tuition, index) => {
+            {tuitions.map((tuition, index) => {
               const id = tuition._id || tuition.id;
+              const currentStatus = tuition.approvalStatus || "pending";
+              const banner = bannerOf(tuition);
+
               return (
                 <div key={id || index} className="p-5 sm:p-6">
                   <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-start">
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
                         <h3 className="text-base font-bold">{tuition.title}</h3>
-                        <span className="badge status-warning">
-                          <Clock3 size={12} className="mr-1" />
-                          Pending
+                        <span className={`badge capitalize ${statusStyle(currentStatus)}`}>
+                          {currentStatus}
                         </span>
                       </div>
                       <p className="mt-2 text-sm font-semibold text-[var(--primary)]">
@@ -209,6 +279,7 @@ export default function AdminTuitionsPage() {
                         {tuition.createdAt
                           ? new Date(tuition.createdAt).toLocaleDateString("en-BD")
                           : "Not available"}
+                        {banner ? " · Banner available" : ""}
                       </p>
                     </div>
 
@@ -245,6 +316,55 @@ export default function AdminTuitionsPage() {
             })}
           </div>
         )}
+
+        {!loading && totalPages > 1 && (
+          <nav
+            aria-label="Admin tuition pagination"
+            className="flex flex-wrap items-center justify-center gap-2 border-t border-[var(--border)] p-5 sm:p-6"
+          >
+            <button
+              type="button"
+              disabled={page <= 1}
+              onClick={() => setPage(page - 1)}
+              className="btn-secondary"
+            >
+              <ArrowLeft size={16} />
+              Previous
+            </button>
+
+            {getPageNumbers(page, totalPages).map((item, index) =>
+              item === "…" ? (
+                <span key={`ellipsis-${index}`} className="px-1 text-sm text-[var(--muted)]">
+                  …
+                </span>
+              ) : (
+                <button
+                  key={item}
+                  type="button"
+                  aria-current={item === page ? "page" : undefined}
+                  onClick={() => setPage(item)}
+                  className={
+                    item === page
+                      ? "btn-primary h-10 w-10 justify-center px-0"
+                      : "btn-secondary h-10 w-10 justify-center px-0"
+                  }
+                >
+                  {item}
+                </button>
+              )
+            )}
+
+            <button
+              type="button"
+              disabled={page >= totalPages}
+              onClick={() => setPage(page + 1)}
+              className="btn-secondary"
+            >
+              Next
+              <ArrowRight size={16} />
+            </button>
+          </nav>
+        )}
       </div>
 
       {selected && (
@@ -268,15 +388,18 @@ export default function AdminTuitionsPage() {
               </button>
             </div>
 
-            {selected.banner && (
+            {bannerOf(selected) && (
               <img
-                src={selected.banner}
+                src={bannerOf(selected)}
                 alt={selected.title || "Tuition"}
                 className="mb-5 max-h-56 w-full rounded-xl object-cover"
               />
             )}
 
             <h3 className="text-lg font-bold">{selected.title}</h3>
+            <span className={`badge mt-2 capitalize ${statusStyle(selected.approvalStatus)}`}>
+              {selected.approvalStatus || "pending"}
+            </span>
 
             <div className="mt-5 grid gap-4 sm:grid-cols-2">
               {[
@@ -284,7 +407,7 @@ export default function AdminTuitionsPage() {
                 { label: "Class Level", value: selected.classLevel },
                 { label: "Mode", value: selected.mode },
                 { label: "Location", value: selected.location },
-                { label: "Salary", value: formatFee(tuitionFee(selected)) },
+                { label: "Fee", value: formatFee(tuitionFee(selected)) },
                 { label: "Days / Week", value: String(selected.daysPerWeek || "—") },
                 { label: "Tutor", value: selected.tutorName },
                 { label: "Tutor Email", value: selected.tutorEmail },
