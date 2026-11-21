@@ -1,10 +1,6 @@
 import Link from "next/link";
-import {
-  GraduationCap,
-  Mail,
-  Phone,
-  MapPin,
-} from "lucide-react";
+import { Mail, MapPin, Phone } from "lucide-react";
+import Logo from "@/components/Logo";
 
 const quickLinks = [
   { label: "Home", href: "/" },
@@ -39,27 +35,16 @@ const socialLinks = [
 
 export default function Footer() {
   return (
-    <footer className="mt-auto bg-[#102d2a] text-white">
+    <footer className="mt-auto bg-[var(--footer-bg)] text-[var(--footer-text)]">
       <div className="mx-auto grid max-w-7xl gap-12 px-5 py-14 sm:px-8 md:grid-cols-2 lg:grid-cols-4 lg:px-10 lg:py-16">
-
-        {/* Brand & Social Links */}
         <div>
-          <Link
-            href="/"
-            className="mb-5 inline-flex items-center gap-2.5"
-          >
-            <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#087f6e]">
-              <GraduationCap size={27} />
-            </span>
+          <div className="mb-5">
+            <Logo inverse />
+          </div>
 
-            <span className="text-2xl font-extrabold tracking-tight">
-              Mentor<span className="text-[#62c9ad]">Lagbe</span>
-            </span>
-          </Link>
-
-          <p className="max-w-xs text-sm leading-7 text-[#b8cbc5]">
-            Connecting ambitious students with passionate tutors.
-            Find the right guidance and make learning meaningful.
+          <p className="max-w-xs text-sm leading-7 text-[var(--footer-muted)]">
+            Connecting ambitious students with passionate tutors. Find the
+            right guidance and make learning meaningful.
           </p>
 
           <div className="mt-6 flex items-center gap-3">
@@ -71,38 +56,34 @@ export default function Footer() {
                 rel="noopener noreferrer"
                 aria-label={social.label}
                 title={social.label}
-                className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-lg font-bold transition-all duration-300 hover:-translate-y-1 hover:bg-[#087f6e]"
+                className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-lg font-bold transition-all duration-300 hover:-translate-y-1 hover:bg-[var(--primary)]"
               >
                 {social.icon}
               </a>
             ))}
 
-            {/* X Social Link */}
             <a
               href="https://x.com/yousufali2525"
               target="_blank"
               rel="noopener noreferrer"
               aria-label="X"
               title="X"
-              className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-lg font-bold transition-all duration-300 hover:-translate-y-1 hover:bg-[#087f6e]"
+              className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-lg font-bold transition-all duration-300 hover:-translate-y-1 hover:bg-[var(--primary)]"
             >
               𝕏
             </a>
           </div>
         </div>
 
-        {/* Quick Links */}
         <div>
-          <h3 className="mb-5 text-base font-bold">
-            Quick Links
-          </h3>
+          <h3 className="mb-5 text-base font-bold">Quick Links</h3>
 
           <ul className="space-y-3">
             {quickLinks.map((link) => (
               <li key={link.href}>
                 <Link
                   href={link.href}
-                  className="text-sm text-[#b8cbc5] transition hover:text-[#62c9ad]"
+                  className="text-sm text-[var(--footer-muted)] transition hover:text-[var(--footer-accent)]"
                 >
                   {link.label}
                 </Link>
@@ -111,18 +92,15 @@ export default function Footer() {
           </ul>
         </div>
 
-        {/* Get Started */}
         <div>
-          <h3 className="mb-5 text-base font-bold">
-            Get Started
-          </h3>
+          <h3 className="mb-5 text-base font-bold">Get Started</h3>
 
           <ul className="space-y-3">
             {supportLinks.map((link) => (
               <li key={link.href}>
                 <Link
                   href={link.href}
-                  className="text-sm text-[#b8cbc5] transition hover:text-[#62c9ad]"
+                  className="text-sm text-[var(--footer-muted)] transition hover:text-[var(--footer-accent)]"
                 >
                   {link.label}
                 </Link>
@@ -131,56 +109,46 @@ export default function Footer() {
           </ul>
         </div>
 
-        {/* Contact Us */}
         <div>
-          <h3 className="mb-5 text-base font-bold">
-            Contact Us
-          </h3>
+          <h3 className="mb-5 text-base font-bold">Contact Us</h3>
 
-          <ul className="space-y-4 text-sm text-[#b8cbc5]">
-
-            {/* Email */}
+          <ul className="space-y-4 text-sm text-[var(--footer-muted)]">
             <li className="flex items-start gap-3">
               <Mail
                 size={18}
-                className="mt-0.5 shrink-0 text-[#62c9ad]"
+                className="mt-0.5 shrink-0 text-[var(--footer-accent)]"
               />
-
               <a
                 href="mailto:yousufali025250@gmail.com"
-                className="break-all transition hover:text-[#62c9ad]"
+                className="break-all transition hover:text-[var(--footer-accent)]"
               >
                 yousufali025250@gmail.com
               </a>
             </li>
 
-            {/* Phone */}
             <li className="flex items-start gap-3">
               <Phone
                 size={18}
-                className="mt-0.5 shrink-0 text-[#62c9ad]"
+                className="mt-0.5 shrink-0 text-[var(--footer-accent)]"
               />
-
               <a
                 href="tel:+8801521748537"
-                className="transition hover:text-[#62c9ad]"
+                className="transition hover:text-[var(--footer-accent)]"
               >
                 +8801521748537
               </a>
             </li>
 
-            {/* Location */}
             <li className="flex items-start gap-3">
               <MapPin
                 size={18}
-                className="mt-0.5 shrink-0 text-[#62c9ad]"
+                className="mt-0.5 shrink-0 text-[var(--footer-accent)]"
               />
-
               <a
                 href="https://www.google.com/maps/search/?api=1&query=Rajshahi%2C+Bangladesh"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="transition hover:text-[#62c9ad]"
+                className="transition hover:text-[var(--footer-accent)]"
               >
                 Rajshahi, Bangladesh
               </a>
@@ -189,13 +157,11 @@ export default function Footer() {
         </div>
       </div>
 
-      {/* Copyright */}
       <div className="border-t border-white/10">
-        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 px-5 py-6 text-center text-xs text-[#a9beb7] sm:px-8 md:flex-row lg:px-10">
+        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 px-5 py-6 text-center text-xs text-[var(--footer-muted)] sm:px-8 md:flex-row lg:px-10">
           <p>
             © {new Date().getFullYear()} MentorLagbe. All rights reserved.
           </p>
-
           <p>Built to make learning easier.</p>
         </div>
       </div>
