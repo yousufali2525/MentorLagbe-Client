@@ -6,7 +6,6 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
-  GraduationCap,
   LayoutDashboard,
   FileText,
   BookOpen,
@@ -18,18 +17,8 @@ import {
   PanelLeftOpen,
   ArrowRight,
 } from "lucide-react";
-
-const API_URL =
-  process.env.NODE_ENV === "development"
-    ? "http://localhost:5000"
-    : "";
-type User = {
-  name?: string;
-  email?: string;
-  role?: string;
-  profileImage?: string;
-  image?: string;
-};
+import Logo from "@/components/Logo";
+import { useAuth } from "@/components/AuthProvider";
 
 export default function StudentLayout({
   children,
@@ -38,56 +27,13 @@ export default function StudentLayout({
 }) {
   const router = useRouter();
   const pathname = usePathname();
+  const { user, signOut } = useAuth();
 
-  const [user, setUser] = useState<User | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(true);
   const [hovered, setHovered] = useState(false);
-  const [authChecked, setAuthChecked] = useState(false);
 
   const isExpanded = !collapsed || hovered;
-
-  useEffect(() => {
-    const loadUser = () => {
-      const token = localStorage.getItem("mentorlagbe-token");
-      const savedUser = localStorage.getItem("mentorlagbe-user");
-
-      if (!token || !savedUser) {
-        router.replace("/sign-in");
-        return;
-      }
-
-      try {
-        const parsedUser = JSON.parse(savedUser);
-        const userData =
-          parsedUser.user ||
-          parsedUser.data?.user ||
-          parsedUser;
-
-        if (userData.role?.toLowerCase() !== "student") {
-          router.replace("/sign-in");
-          return;
-        }
-
-        setUser(userData);
-        setAuthChecked(true);
-      } catch {
-        localStorage.removeItem("mentorlagbe-user");
-        localStorage.removeItem("mentorlagbe-token");
-        router.replace("/sign-in");
-      }
-    };
-
-    loadUser();
-
-    window.addEventListener("user-updated", loadUser);
-    window.addEventListener("auth-updated", loadUser);
-
-    return () => {
-      window.removeEventListener("user-updated", loadUser);
-      window.removeEventListener("auth-updated", loadUser);
-    };
-  }, [router]);
 
   useEffect(() => {
     setMobileOpen(false);
@@ -100,25 +46,9 @@ export default function StudentLayout({
   };
 
   const handleLogout = async () => {
-    const token = localStorage.getItem("mentorlagbe-token");
-
-    try {
-      await fetch(`${API_URL}/api/auth/sign-out`, {
-        method: "POST",
-        headers: token
-          ? { Authorization: `Bearer ${token}` }
-          : {},
-        credentials: "include",
-      });
-    } catch {
-      console.error("Logout request failed");
-    } finally {
-      localStorage.removeItem("mentorlagbe-token");
-      localStorage.removeItem("mentorlagbe-user");
-      window.dispatchEvent(new Event("user-updated"));
-      router.replace("/sign-in");
-      router.refresh();
-    }
+    await signOut();
+    router.replace("/sign-in");
+    router.refresh();
   };
 
   const menuItems = [
@@ -163,14 +93,6 @@ export default function StudentLayout({
 
   const profileImage = user?.profileImage || user?.image || "";
 
-  if (!authChecked) {
-    return (
-      <div className="flex min-h-[calc(100vh-76px)] items-center justify-center bg-[#f7faf8]">
-        <div className="h-10 w-10 animate-spin rounded-full border-4 border-[#dceae5] border-t-[#087f6e]" />
-      </div>
-    );
-  }
-
   return (
     <div className="flex min-h-[calc(100vh-76px)] w-full items-stretch bg-[#f7faf8]">
       {mobileOpen && (
@@ -191,21 +113,7 @@ export default function StudentLayout({
         } lg:translate-x-0`}
       >
         <div className="flex h-20 shrink-0 items-center justify-between border-b border-[#e3ebe8] pl-4 pr-2">
-          <Link href="/" className="flex min-w-0 items-center gap-3">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#e8f5f1] text-[#087f6e]">
-              <GraduationCap size={26} />
-            </div>
-
-            <span
-              className={`overflow-hidden whitespace-nowrap text-xl font-extrabold text-[#087f6e] transition-all duration-300 ${
-                isExpanded
-                  ? "max-w-48 opacity-100"
-                  : "max-w-0 opacity-0"
-              }`}
-            >
-              MentorLagbe
-            </span>
-          </Link>
+          <Logo compact={!isExpanded} subtitle="Student Dashboard" />
 
           <div className="flex shrink-0 items-center gap-1">
             <button
@@ -261,8 +169,8 @@ export default function StudentLayout({
                 <p className="truncate text-xs text-[#82918c]">
                   {user?.email || "Student Account"}
                 </p>
-                <span className="text-xs font-semibold capitalize text-[#087f6e]">
-                  {user?.role || "Student"} Account
+                <span className="mt-1 inline-flex rounded-full bg-[#e8f5f1] px-2 py-0.5 text-[11px] font-bold capitalize text-[#087f6e]">
+                  {user?.role || "student"}
                 </span>
               </div>
             )}

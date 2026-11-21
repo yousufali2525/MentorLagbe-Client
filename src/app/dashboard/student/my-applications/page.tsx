@@ -1,7 +1,7 @@
 "use client";
 
-import ApplicationsPage from "../../applications/page";
+import MyApplications from "@/components/student/MyApplications";
 
 export default function StudentMyApplicationsPage() {
-  return <ApplicationsPage />;
+  return <MyApplications />;
 }
