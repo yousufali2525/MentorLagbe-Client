@@ -70,9 +70,9 @@ const NAV_ITEMS: Record<Role, NavItem[]> = {
       icon: Users,
     },
     {
-      label: "Browse Tuitions",
-      href: "/tuitions",
-      icon: Search,
+      label: "Pricing",
+      href: "/pricing",
+      icon: Sparkles,
     },
     {
       label: "Profile",
@@ -96,6 +96,11 @@ const NAV_ITEMS: Record<Role, NavItem[]> = {
       label: "Browse Tuitions",
       href: "/tuitions",
       icon: Search,
+    },
+    {
+      label: "Pricing",
+      href: "/pricing",
+      icon: Sparkles,
     },
     {
       label: "Profile",
