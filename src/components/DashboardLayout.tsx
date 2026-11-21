@@ -21,6 +21,8 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Plus,
+  Search,
+  Sparkles,
   UserRound,
   Users,
   X,
@@ -68,6 +70,16 @@ const NAV_ITEMS: Record<Role, NavItem[]> = {
       icon: Users,
     },
     {
+      label: "Browse Tuitions",
+      href: "/tuitions",
+      icon: Search,
+    },
+    {
+      label: "Pricing",
+      href: "/pricing",
+      icon: Sparkles,
+    },
+    {
       label: "Profile",
       href: "/dashboard/profile",
       icon: UserRound,
@@ -87,8 +99,13 @@ const NAV_ITEMS: Record<Role, NavItem[]> = {
     },
     {
       label: "Browse Tuitions",
-      href: "/dashboard/student/browse",
-      icon: BookOpen,
+      href: "/tuitions",
+      icon: Search,
+    },
+    {
+      label: "Pricing",
+      href: "/pricing",
+      icon: Sparkles,
     },
     {
       label: "Profile",
@@ -117,6 +134,16 @@ const NAV_ITEMS: Record<Role, NavItem[]> = {
       label: "Transactions",
       href: "/dashboard/admin/transactions",
       icon: CreditCard,
+    },
+    {
+      label: "Browse Tuitions",
+      href: "/tuitions",
+      icon: Search,
+    },
+    {
+      label: "Pricing",
+      href: "/pricing",
+      icon: Sparkles,
     },
     {
       label: "Profile",
