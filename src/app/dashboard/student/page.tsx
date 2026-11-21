@@ -50,8 +50,12 @@ export default function StudentDashboardPage() {
           auth: false,
         });
         if (active) setRecommended(extractTuitionList(result).slice(0, 3));
-      } catch {
-        // Recommendations are optional; the dashboard still works.
+      } catch (err) {
+        toast.error(
+          err instanceof Error
+            ? `Could not load recommendations: ${err.message}`
+            : "Could not load recommended tuitions."
+        );
       }
     }
 
@@ -186,7 +190,11 @@ export default function StudentDashboardPage() {
                 application.tuition?.title ||
                 application.tuitionTitle ||
                 "Tuition Application";
-              const fee = application.monthlyFee ?? application.tuition?.monthlyFee;
+              const fee =
+                application.monthlyFee ??
+                application.salary ??
+                application.tuition?.monthlyFee ??
+                application.tuition?.salary;
 
               return (
                 <div

@@ -15,14 +15,16 @@ export type ApplicationRecord = {
   updatedAt?: string;
   tuitionTitle?: string;
   subject?: string;
-  monthlyFee?: number;
+  monthlyFee?: number | string;
+  salary?: number | string;
   tutorName?: string;
   tutorEmail?: string;
   tuition?: {
     _id?: string;
     title?: string;
     subject?: string;
-    monthlyFee?: number;
+    monthlyFee?: number | string;
+    salary?: number | string;
     tutorName?: string;
     tutorEmail?: string;
   };

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   BookOpen,
@@ -42,6 +42,10 @@ export default function MyApplications() {
   const [filter, setFilter] = useState<Filter>("all");
   const [cancellingId, setCancellingId] = useState<string | null>(null);
 
+  useEffect(() => {
+    if (error) toast.error(error);
+  }, [error]);
+
   const counts = useMemo(() => {
     const value = (status?: string) => status?.toLowerCase();
     return {
@@ -81,6 +85,44 @@ export default function MyApplications() {
       setCancellingId(null);
     }
   }
+
+  const rows = useMemo(
+    () =>
+      visible.map((application, index) => {
+        const status = application.status || "pending";
+        return {
+          key: application._id || application.id || `application-${index}`,
+          id: application._id || application.id,
+          status,
+          title:
+            application.tuition?.title ||
+            application.tuitionTitle ||
+            "Tuition Application",
+          tutor:
+            application.tutorName ||
+            application.tuition?.tutorName ||
+            application.tutorEmail ||
+            "Not available",
+          subject:
+            application.subject ||
+            application.tuition?.subject ||
+            "Subject unavailable",
+          fee:
+            application.monthlyFee ??
+            application.salary ??
+            application.tuition?.monthlyFee ??
+            application.tuition?.salary,
+          applied: application.createdAt
+            ? new Date(application.createdAt).toLocaleDateString("en-BD", {
+                day: "numeric",
+                month: "short",
+                year: "numeric",
+              })
+            : "Date unavailable",
+        };
+      }),
+    [visible]
+  );
 
   return (
     <div className="mx-auto w-full max-w-[1600px]">
@@ -173,78 +215,104 @@ export default function MyApplications() {
             </span>
           </div>
 
-          <div className="divide-y divide-[var(--border)]">
-            {visible.map((application, index) => {
-              const status = application.status || "pending";
-              const title =
-                application.tuition?.title ||
-                application.tuitionTitle ||
-                "Tuition Application";
-              const tutor =
-                application.tutorName ||
-                application.tuition?.tutorName ||
-                application.tutorEmail ||
-                "Not available";
-              const fee = application.monthlyFee ?? application.tuition?.monthlyFee;
-              const id = application._id || application.id;
-              const applied = application.createdAt
-                ? new Date(application.createdAt).toLocaleDateString("en-BD", {
-                    day: "numeric",
-                    month: "short",
-                    year: "numeric",
-                  })
-                : "Date unavailable";
-
-              return (
-                <div
-                  key={id || index}
-                  className="flex flex-col justify-between gap-4 p-5 sm:flex-row sm:items-center sm:px-7"
-                >
-                  <div className="flex min-w-0 items-start gap-4">
-                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[var(--secondary)] text-[var(--primary)]">
-                      <BookOpen size={22} />
-                    </div>
-                    <div className="min-w-0">
-                      <h3 className="break-words font-bold">{title}</h3>
-                      <p className="mt-1 text-sm text-[var(--muted)]">
-                        Tutor: {tutor}
-                      </p>
-                      <p className="mt-1 text-xs text-[var(--muted)]">
-                        {application.subject ||
-                          application.tuition?.subject ||
-                          "Subject unavailable"}{" "}
-                        · Applied: {applied}
-                      </p>
-                      {fee !== undefined && (
-                        <p className="mt-2 text-sm font-bold text-[var(--primary)]">
-                          {formatFee(fee)}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="flex flex-wrap items-center gap-3 sm:justify-end">
-                    <span
-                      className={`inline-flex w-fit items-center gap-1.5 rounded-full px-3 py-2 text-xs font-bold capitalize ${statusStyle(status)}`}
-                    >
-                      <StatusIcon status={status} />
-                      {status}
-                    </span>
-                    {status.toLowerCase() === "pending" && id && (
-                      <button
-                        type="button"
-                        onClick={() => handleCancel(id)}
-                        disabled={cancellingId !== null}
-                        className="btn-danger text-xs"
+          <div className="hidden overflow-x-auto md:block">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th scope="col">Tuition</th>
+                  <th scope="col">Tutor</th>
+                  <th scope="col">Applied</th>
+                  <th scope="col">Fee</th>
+                  <th scope="col">Status</th>
+                  <th scope="col">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((row) => (
+                  <tr key={row.key}>
+                    <td>
+                      <p className="font-bold">{row.title}</p>
+                      <p className="mt-1 text-xs text-[var(--muted)]">{row.subject}</p>
+                    </td>
+                    <td>{row.tutor}</td>
+                    <td>{row.applied}</td>
+                    <td>{row.fee !== undefined ? formatFee(row.fee) : "—"}</td>
+                    <td>
+                      <span
+                        className={`inline-flex w-fit items-center gap-1.5 rounded-full px-3 py-2 text-xs font-bold capitalize ${statusStyle(row.status)}`}
                       >
-                        {cancellingId === id ? "Cancelling..." : "Cancel"}
-                        {cancellingId !== id && <Trash2 size={14} />}
-                      </button>
+                        <StatusIcon status={row.status} />
+                        {row.status}
+                      </span>
+                    </td>
+                    <td>
+                      {row.status.toLowerCase() === "pending" && row.id ? (
+                        <button
+                          type="button"
+                          onClick={() => handleCancel(row.id as string)}
+                          disabled={cancellingId !== null}
+                          className="btn-danger text-xs"
+                        >
+                          {cancellingId === row.id ? "Cancelling..." : "Cancel"}
+                          {cancellingId !== row.id && <Trash2 size={14} />}
+                        </button>
+                      ) : (
+                        <span className="text-xs text-[var(--muted)]">—</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="divide-y divide-[var(--border)] md:hidden">
+            {rows.map((row) => (
+              <div
+                key={row.key}
+                className="flex flex-col justify-between gap-4 p-5 sm:px-7"
+              >
+                <div className="flex min-w-0 items-start gap-4">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[var(--secondary)] text-[var(--primary)]">
+                    <BookOpen size={22} />
+                  </div>
+                  <div className="min-w-0">
+                    <h3 className="break-words font-bold">{row.title}</h3>
+                    <p className="mt-1 text-sm text-[var(--muted)]">
+                      Tutor: {row.tutor}
+                    </p>
+                    <p className="mt-1 text-xs text-[var(--muted)]">
+                      {row.subject} · Applied: {row.applied}
+                    </p>
+                    {row.fee !== undefined && (
+                      <p className="mt-2 text-sm font-bold text-[var(--primary)]">
+                        {formatFee(row.fee)}
+                      </p>
                     )}
                   </div>
                 </div>
-              );
-            })}
+
+                <div className="flex flex-wrap items-center gap-3">
+                  <span
+                    className={`inline-flex w-fit items-center gap-1.5 rounded-full px-3 py-2 text-xs font-bold capitalize ${statusStyle(row.status)}`}
+                  >
+                    <StatusIcon status={row.status} />
+                    {row.status}
+                  </span>
+                  {row.status.toLowerCase() === "pending" && row.id && (
+                    <button
+                      type="button"
+                      onClick={() => handleCancel(row.id as string)}
+                      disabled={cancellingId !== null}
+                      className="btn-danger text-xs"
+                    >
+                      {cancellingId === row.id ? "Cancelling..." : "Cancel"}
+                      {cancellingId !== row.id && <Trash2 size={14} />}
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}

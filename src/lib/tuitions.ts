@@ -11,6 +11,7 @@ export type Tuition = {
   salary?: number | string;
   monthlyFee?: number | string;
   daysPerWeek?: number | string;
+  bannerImage?: string;
   tutorId?: string;
   tutorName?: string;
   tutorEmail?: string;
@@ -26,6 +27,9 @@ export type TuitionListResponse = {
   success?: boolean;
   count?: number;
   total?: number;
+  page?: number;
+  limit?: number;
+  totalPages?: number;
   tuitions?: Tuition[];
   data?: Tuition[] | { tuitions?: Tuition[]; pagination?: unknown };
   pagination?: { total?: number; totalItems?: number; totalPages?: number };
@@ -67,6 +71,10 @@ export function classLevelOf(tuition: Tuition): string {
 
 export function modeOf(tuition: Tuition): string {
   return tuition.mode || "Flexible";
+}
+
+export function bannerOf(tuition: Tuition): string {
+  return tuition.bannerImage || tuition.banner || "";
 }
 
 export function locationOf(tuition: Tuition): string {
