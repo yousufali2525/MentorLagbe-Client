@@ -85,6 +85,16 @@ export default function Navbar() {
               </Link>
             );
           })}
+
+          {!loading && user ? (
+            <Link
+              href={dashboardHref}
+              className="inline-flex items-center gap-2 rounded-xl border border-[var(--border)] px-3 py-2 text-sm font-bold text-[var(--primary)] transition-colors hover:bg-[var(--secondary)]"
+            >
+              <LayoutDashboard size={16} />
+              Dashboard
+            </Link>
+          ) : null}
         </div>
 
         <div className="hidden items-center gap-3 lg:flex">

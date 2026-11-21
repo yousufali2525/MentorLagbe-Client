@@ -10,6 +10,7 @@ import {
   Clock3,
   Mail,
   MessageSquare,
+  Phone,
   RefreshCw,
   Search,
   Users,
@@ -19,7 +20,7 @@ import StatCard from "@/components/dashboard/StatCard";
 import { toast } from "@/components/ToastProvider";
 import { apiFetch } from "@/lib/api";
 import { useMyTuitions } from "@/hooks/useMyTuitions";
-import { formatFee, tuitionFee, type Tuition } from "@/lib/tuitions";
+import { formatFee, type Tuition } from "@/lib/tuitions";
 
 type Applicant = {
   _id?: string;
@@ -27,10 +28,18 @@ type Applicant = {
   studentId?: string;
   studentName?: string;
   studentEmail?: string;
+  studentPhone?: string;
+  preferredSchedule?: string;
+  studentNote?: string;
   message?: string;
   status?: string;
+  appliedAt?: string;
   createdAt?: string;
   tuitionId?: string;
+  tuitionTitle?: string;
+  subject?: string;
+  monthlyFee?: number | string;
+  tutorEmail?: string;
   tuition?: Partial<Tuition>;
 };
 
@@ -266,13 +275,15 @@ export default function TutorApplicantsPage() {
             const id = applicant._id || applicant.id;
             const status = applicant.status || "pending";
             const tuition = tuitionById.get(applicant.tuitionId || "");
-            const applied = applicant.createdAt
-              ? new Date(applicant.createdAt).toLocaleDateString("en-BD", {
+            const appliedAt = applicant.appliedAt || applicant.createdAt;
+            const applied = appliedAt
+              ? new Date(appliedAt).toLocaleDateString("en-BD", {
                   day: "numeric",
                   month: "short",
                   year: "numeric",
                 })
               : "Date unavailable";
+            const note = applicant.studentNote || applicant.message || "";
 
             return (
               <div key={id || index} className="card p-5 sm:p-6">
@@ -292,27 +303,43 @@ export default function TutorApplicantsPage() {
                         <Mail size={15} className="shrink-0 text-[var(--primary)]" />
                         {applicant.studentEmail || "Email unavailable"}
                       </p>
+                      {applicant.studentPhone ? (
+                        <p className="flex items-center gap-2">
+                          <Phone size={15} className="shrink-0 text-[var(--primary)]" />
+                          {applicant.studentPhone}
+                        </p>
+                      ) : null}
                       <p className="flex items-center gap-2">
                         <BookOpen size={15} className="shrink-0 text-[var(--primary)]" />
-                        {tuition?.title || `Tuition ID: ${applicant.tuitionId || "N/A"}`}
+                        {applicant.tuitionTitle ||
+                          tuition?.title ||
+                          `Tuition ID: ${applicant.tuitionId || "N/A"}`}
                       </p>
-                      {tuition && (
+                      {(applicant.subject || tuition?.subject) && (
                         <p className="flex items-center gap-2">
                           <CalendarDays size={15} className="shrink-0 text-[var(--primary)]" />
-                          {tuition.subject || "Subject unavailable"} ·{" "}
-                          {formatFee(tuitionFee(tuition))}
+                          {applicant.subject || tuition?.subject} ·{" "}
+                          {formatFee(
+                            applicant.monthlyFee ?? tuition?.monthlyFee ?? null
+                          )}
                         </p>
                       )}
+                      {applicant.preferredSchedule ? (
+                        <p className="flex items-center gap-2">
+                          <CalendarDays size={15} className="shrink-0 text-[var(--primary)]" />
+                          Schedule: {applicant.preferredSchedule}
+                        </p>
+                      ) : null}
                       <p className="flex items-center gap-2">
                         <Clock3 size={15} className="shrink-0 text-[var(--primary)]" />
                         Applied: {applied}
                       </p>
                     </div>
 
-                    {applicant.message && (
+                    {note && (
                       <div className="mt-4 flex items-start gap-2 rounded-xl bg-[var(--secondary)] p-3 text-sm text-[var(--muted)]">
                         <MessageSquare size={16} className="mt-0.5 shrink-0 text-[var(--primary)]" />
-                        <p className="whitespace-pre-line">{applicant.message}</p>
+                        <p className="whitespace-pre-line">{note}</p>
                       </div>
                     )}
                   </div>

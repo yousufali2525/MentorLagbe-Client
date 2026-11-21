@@ -147,10 +147,13 @@ export default function AdminUsersPage() {
     }
   }
 
-  async function changeRole(user: AdminUser, nextRole: "student" | "tutor") {
+  async function changeRole(
+    user: AdminUser,
+    nextRole: "student" | "tutor" | "admin"
+  ) {
     const id = userId(user);
-    if (!id || id === currentAdminId || user.role === "admin") {
-      toast.error("Admin roles cannot be changed here.");
+    if (!id || id === currentAdminId) {
+      toast.error("You cannot change your own role.");
       return;
     }
     if (user.role === nextRole) return;
@@ -250,12 +253,6 @@ export default function AdminUsersPage() {
         </select>
       </div>
 
-      <p className="mb-4 text-xs text-[var(--muted)]">
-        The current API supports role changes between student and tutor only,
-        and has no account-status query filter. Admin promotion must be handled
-        by the server setup script; status filtering applies to the current page.
-      </p>
-
       {loading ? (
         <div className="space-y-3">
           {Array.from({ length: 6 }).map((_, index) => (
@@ -311,22 +308,32 @@ export default function AdminUsersPage() {
                       </div>
                     </td>
                     <td>
-                      {item.role === "admin" || isSelf ? (
+                      {isSelf ? (
                         <span className="badge capitalize">
                           <ShieldCheck size={12} className="mr-1" />
-                          {item.role}
+                          {item.role || "admin"}
                         </span>
                       ) : (
                         <select
-                          value={item.role === "tutor" ? "tutor" : "student"}
+                          value={
+                            ["student", "tutor", "admin"].includes(
+                              item.role || ""
+                            )
+                              ? item.role
+                              : "student"
+                          }
                           onChange={(event) =>
-                            changeRole(item, event.target.value as "student" | "tutor")
+                            changeRole(
+                              item,
+                              event.target.value as "student" | "tutor" | "admin"
+                            )
                           }
                           disabled={updatingId !== null}
                           className="field-input min-w-[7rem] py-1.5 text-xs font-bold capitalize"
                         >
                           <option value="student">Student</option>
                           <option value="tutor">Tutor</option>
+                          <option value="admin">Admin</option>
                         </select>
                       )}
                     </td>

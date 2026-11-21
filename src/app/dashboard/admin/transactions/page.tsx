@@ -29,6 +29,7 @@ type Payment = {
 type PaymentsResponse = {
   success?: boolean;
   payments?: Payment[];
+  totalRevenue?: number;
   pagination?: {
     totalPayments?: number;
     currentPage?: number;
@@ -66,6 +67,7 @@ export default function AdminTransactionsPage() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalPayments, setTotalPayments] = useState(0);
+  const [totalRevenue, setTotalRevenue] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -89,6 +91,7 @@ export default function AdminTransactionsPage() {
       setPayments(Array.isArray(result.payments) ? result.payments : []);
       setTotalPages(Math.max(1, result.pagination?.totalPages || 1));
       setTotalPayments(result.pagination?.totalPayments || 0);
+      setTotalRevenue(Number(result.totalRevenue) || 0);
     } catch (err) {
       toast.error(
         err instanceof Error ? err.message : "Unable to load transactions."
@@ -146,13 +149,22 @@ export default function AdminTransactionsPage() {
         </button>
       </div>
 
-      <div className="mb-6 grid gap-4 sm:grid-cols-2">
+      <div className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         <div className="card p-5">
           <div className="flex items-center justify-between gap-3">
             <p className="text-sm text-[var(--muted)]">Total Transactions</p>
             <CreditCard size={20} className="text-[var(--primary)]" />
           </div>
           <p className="mt-3 text-3xl font-extrabold">{totalPayments}</p>
+        </div>
+        <div className="card p-5">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-sm text-[var(--muted)]">Total Revenue</p>
+            <CreditCard size={20} className="text-[var(--primary)]" />
+          </div>
+          <p className="mt-3 text-3xl font-extrabold">
+            {formatUsd(totalRevenue)}
+          </p>
         </div>
         <div className="card p-5">
           <div className="flex items-center justify-between gap-3">

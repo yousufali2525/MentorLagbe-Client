@@ -19,6 +19,47 @@ export type AuthUser = {
   createdAt?: string;
 };
 
+/**
+ * Better Auth uses `image`, the app database uses `profileImage`, and older
+ * responses may use one of the other aliases. Normalize all of them so the
+ * Navbar always receives the same field.
+ */
+export function normalizeAuthUser(value: unknown): AuthUser | null {
+  if (!value || typeof value !== "object") return null;
+
+  const raw = value as Record<string, unknown>;
+  const user = { ...raw } as AuthUser;
+
+  const imageValue = [
+    raw.profileImage,
+    raw.image,
+    raw.imageUrl,
+    raw.photoURL,
+    raw.avatar,
+  ].find((item) => typeof item === "string" && item.trim());
+
+  if (typeof imageValue === "string" && imageValue.trim()) {
+    const image = imageValue.trim();
+    user.profileImage = image;
+    user.image = image;
+  }
+
+  const idValue = raw._id ?? raw.id;
+  if (idValue !== undefined && idValue !== null) {
+    const id = String(idValue);
+    user._id = id;
+    user.id = id;
+  }
+
+  return user;
+}
+
+function sameAuthUser(a: AuthUser | null, b: AuthUser | null): boolean {
+  const aId = a?._id || a?.id;
+  const bId = b?._id || b?.id;
+  return Boolean(aId && bId && String(aId) === String(bId));
+}
+
 export class ApiError extends Error {
   status: number;
   data: unknown;
@@ -85,7 +126,8 @@ export function clearStoredSession(): void {
 
 /** Exchange the BetterAuth session for the backend JWT. */
 async function exchangeCookieForToken(
-  sessionToken: string | null = betterAuthSessionToken
+  sessionToken: string | null = betterAuthSessionToken,
+  fallbackUser?: AuthUser | null
 ): Promise<{
   token: string;
   user: AuthUser;
@@ -110,7 +152,20 @@ async function exchangeCookieForToken(
     const data = await response.json();
     if (!data?.token) return null;
 
-    const user = (data.user || {}) as AuthUser;
+    const tokenUser = normalizeAuthUser(data.user);
+    const previousUser = getStoredUser();
+    const sessionUser = normalizeAuthUser(fallbackUser);
+
+    // /api/token returns only id/name/email/role/plan. Keep the richer profile
+    // (especially profileImage) that /api/users/me or Better Auth already gave
+    // us for the same user, so a forced JWT refresh does not erase the avatar.
+    const user =
+      normalizeAuthUser({
+        ...(sameAuthUser(previousUser, tokenUser) ? previousUser : {}),
+        ...(sameAuthUser(sessionUser, tokenUser) ? sessionUser : {}),
+        ...(tokenUser ?? {}),
+      }) ?? ({} as AuthUser);
+
     storeSession(data.token, user);
     return { token: data.token, user };
   } catch {
@@ -126,7 +181,8 @@ let refreshPromise: Promise<boolean> | null = null;
  */
 export function ensureFreshToken(
   force = false,
-  sessionToken?: string | null
+  sessionToken?: string | null,
+  fallbackUser?: AuthUser | null
 ): Promise<boolean> {
   rememberBetterAuthSessionToken(sessionToken);
 
@@ -135,7 +191,8 @@ export function ensureFreshToken(
   if (refreshPromise) return refreshPromise;
 
   refreshPromise = exchangeCookieForToken(
-    sessionToken ?? betterAuthSessionToken
+    sessionToken ?? betterAuthSessionToken,
+    fallbackUser
   )
     .then((result) => Boolean(result))
     .catch(() => false)

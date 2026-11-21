@@ -112,8 +112,13 @@ export default function MyApplications() {
             application.salary ??
             application.tuition?.monthlyFee ??
             application.tuition?.salary,
-          applied: application.createdAt
-            ? new Date(application.createdAt).toLocaleDateString("en-BD", {
+          phone: application.studentPhone || "",
+          schedule: application.preferredSchedule || "",
+          note: application.studentNote || application.message || "",
+          applied: application.appliedAt || application.createdAt
+            ? new Date(
+                (application.appliedAt || application.createdAt) as string
+              ).toLocaleDateString("en-BD", {
                 day: "numeric",
                 month: "short",
                 year: "numeric",
@@ -233,6 +238,16 @@ export default function MyApplications() {
                     <td>
                       <p className="font-bold">{row.title}</p>
                       <p className="mt-1 text-xs text-[var(--muted)]">{row.subject}</p>
+                      {row.schedule ? (
+                        <p className="mt-1 text-xs text-[var(--muted)]">
+                          Schedule: {row.schedule}
+                        </p>
+                      ) : null}
+                      {row.note ? (
+                        <p className="mt-1 line-clamp-2 text-xs text-[var(--muted)]">
+                          Note: {row.note}
+                        </p>
+                      ) : null}
                     </td>
                     <td>{row.tutor}</td>
                     <td>{row.applied}</td>
@@ -284,6 +299,16 @@ export default function MyApplications() {
                     <p className="mt-1 text-xs text-[var(--muted)]">
                       {row.subject} · Applied: {row.applied}
                     </p>
+                    {row.schedule ? (
+                      <p className="mt-1 text-xs text-[var(--muted)]">
+                        Schedule: {row.schedule}
+                      </p>
+                    ) : null}
+                    {row.note ? (
+                      <p className="mt-1 line-clamp-2 text-xs text-[var(--muted)]">
+                        Note: {row.note}
+                      </p>
+                    ) : null}
                     {row.fee !== undefined && (
                       <p className="mt-2 text-sm font-bold text-[var(--primary)]">
                         {formatFee(row.fee)}

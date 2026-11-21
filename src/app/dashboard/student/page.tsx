@@ -141,11 +141,8 @@ export default function StudentDashboardPage() {
               </p>
             </div>
           </div>
-          <Link
-            href="/pricing"
-            className="inline-flex justify-center rounded-xl bg-[var(--primary-foreground)] px-5 py-3 text-sm font-bold text-[var(--primary)]"
-          >
-            View plans
+          <Link href="/pricing" className="upgrade-button">
+            Upgrade to Pro
           </Link>
         </div>
       )}

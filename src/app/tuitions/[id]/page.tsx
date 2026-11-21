@@ -12,6 +12,7 @@ import {
   GraduationCap,
   MapPin,
   Monitor,
+  Phone,
   Send,
   ShieldCheck,
   UserRound,
@@ -45,9 +46,17 @@ export default function TuitionDetailsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const [message, setMessage] = useState("");
+  const [studentPhone, setStudentPhone] = useState("");
+  const [preferredSchedule, setPreferredSchedule] = useState("");
+  const [studentNote, setStudentNote] = useState("");
   const [applying, setApplying] = useState(false);
   const [alreadyApplied, setAlreadyApplied] = useState(false);
+
+  useEffect(() => {
+    if (user?.phone) {
+      setStudentPhone((current) => current || user.phone || "");
+    }
+  }, [user?.phone]);
 
   useEffect(() => {
     if (!id) return;
@@ -121,14 +130,28 @@ export default function TuitionDetailsPage() {
       return;
     }
 
+    const phone = studentPhone.trim();
+    const schedule = preferredSchedule.trim();
+
+    if (!phone || !schedule) {
+      toast.error("Phone and preferred schedule are required.");
+      return;
+    }
+
     try {
       setApplying(true);
       const result = await apiFetch<{ message?: string }>("/api/applications", {
         method: "POST",
-        body: JSON.stringify({ tuitionId: id, message: message.trim() }),
+        body: JSON.stringify({
+          tuitionId: id,
+          studentPhone: phone,
+          preferredSchedule: schedule,
+          studentNote: studentNote.trim(),
+        }),
       });
       toast.success(result.message || "Application submitted successfully!");
-      setMessage("");
+      setPreferredSchedule("");
+      setStudentNote("");
       setAlreadyApplied(true);
     } catch (err) {
       toast.error(
@@ -362,23 +385,61 @@ export default function TuitionDetailsPage() {
                   </div>
 
                   <div>
-                    <label htmlFor="apply-message" className="field-label">
-                      Message to Tutor
+                    <label htmlFor="apply-phone" className="field-label">
+                      Student Phone
+                    </label>
+                    <div className="relative">
+                      <Phone
+                        size={16}
+                        className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted)]"
+                      />
+                      <input
+                        id="apply-phone"
+                        type="tel"
+                        required
+                        value={studentPhone}
+                        onChange={(event) => setStudentPhone(event.target.value)}
+                        placeholder="e.g. +8801XXXXXXXXX"
+                        className="field-input pl-9"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label htmlFor="apply-schedule" className="field-label">
+                      Preferred Schedule
+                    </label>
+                    <div className="relative">
+                      <CalendarDays
+                        size={16}
+                        className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted)]"
+                      />
+                      <input
+                        id="apply-schedule"
+                        required
+                        value={preferredSchedule}
+                        onChange={(event) =>
+                          setPreferredSchedule(event.target.value)
+                        }
+                        placeholder="e.g. Weekdays 6:00–7:30 PM"
+                        className="field-input pl-9"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label htmlFor="apply-note" className="field-label">
+                      Learning Note
                     </label>
                     <textarea
-                      id="apply-message"
-                      value={message}
-                      onChange={(event) => setMessage(event.target.value)}
-                      placeholder="Introduce yourself and include your preferred schedule and contact details."
+                      id="apply-note"
+                      value={studentNote}
+                      onChange={(event) => setStudentNote(event.target.value)}
+                      placeholder="Tell the tutor about your learning goals and any questions you have."
                       rows={5}
                       className="field-input"
                     />
                   </div>
-
-                  <p className="rounded-lg bg-[var(--secondary)] p-3 text-xs leading-5 text-[var(--muted)]">
-                    The backend currently accepts a message only. Include your
-                    phone number and preferred schedule inside the message.
-                  </p>
 
                   <button
                     type="submit"

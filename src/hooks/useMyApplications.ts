@@ -10,7 +10,13 @@ export type ApplicationRecord = {
   id?: string;
   tuitionId?: string;
   status?: string;
+  studentName?: string;
+  studentEmail?: string;
+  studentPhone?: string;
+  preferredSchedule?: string;
+  studentNote?: string;
   message?: string;
+  appliedAt?: string;
   createdAt?: string;
   updatedAt?: string;
   tuitionTitle?: string;

@@ -228,11 +228,8 @@ export default function TutorDashboardPage() {
               </p>
             </div>
           </div>
-          <Link
-            href="/pricing"
-            className="inline-flex justify-center rounded-xl bg-[var(--surface)] px-5 py-3 text-sm font-bold text-[var(--primary)]"
-          >
-            Upgrade
+          <Link href="/pricing" className="upgrade-button">
+            Upgrade to Pro
           </Link>
         </section>
       )}
