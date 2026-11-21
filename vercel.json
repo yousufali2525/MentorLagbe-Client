@@ -1,9 +1,1 @@
-
-{
-  "rewrites": [
-    {
-      "source": "/api/:path*",
-      "destination": "https://mentorlagbe-server-s98a.onrender.com/api/:path*"
-    }
-  ]
-}
+{}
