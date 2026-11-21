@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { animate, motion, useInView } from "framer-motion";
@@ -32,6 +33,8 @@ import {
   tuitionFee,
   type Tuition,
 } from "@/lib/tuitions";
+
+const HERO_IMAGE = "/images/hero.jpg";
 
 type PlanRole = "student" | "tutor";
 
@@ -321,71 +324,47 @@ export default function HomePage() {
           </motion.div>
 
           <motion.div
-            initial={{ opacity: 0, scale: 0.94 }}
-            animate={{ opacity: 1, scale: 1 }}
+            initial={{ opacity: 0, y: 18 }}
+            animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, ease: "easeOut" }}
             className="relative mx-auto w-full max-w-lg"
           >
-            <div className="relative overflow-hidden rounded-[32px] bg-[var(--hero-deep)] p-7 shadow-2xl sm:p-10">
-              <div className="absolute -right-16 -top-16 h-56 w-56 rounded-full border-[35px] border-white/5" />
-              <div className="absolute -bottom-20 -left-16 h-64 w-64 rounded-full border-[40px] border-white/5" />
-
-              <div className="relative">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-semibold text-[var(--hero-muted)]">
-                    Learning made better
-                  </span>
-                  <span className="rounded-full bg-[var(--hero-accent)] px-3 py-1 text-xs font-bold text-[var(--hero-deep)]">
-                    MentorLagbe
-                  </span>
-                </div>
-
-                <div className="mt-10 flex justify-center">
-                  <div className="flex h-44 w-44 items-center justify-center rounded-full border border-white/20 bg-white/10 sm:h-52 sm:w-52">
-                    <div className="flex h-32 w-32 items-center justify-center rounded-full bg-[var(--hero-accent)] text-[var(--hero-deep)] sm:h-40 sm:w-40">
-                      <GraduationCap size={86} strokeWidth={1.5} />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-10 rounded-2xl border border-white/15 bg-white/10 p-5 backdrop-blur-sm">
-                  <p className="text-sm font-medium text-[var(--hero-muted)]">
-                    Your next step starts today
-                  </p>
-                  <p className="mt-2 text-2xl font-bold text-[var(--hero-foreground)]">
-                    Learn. Grow. Succeed.
-                  </p>
-                  <div className="mt-5 flex items-center gap-2">
-                    <span className="h-2 w-2 rounded-full bg-[var(--hero-accent)]" />
-                    <span className="text-xs text-[var(--hero-muted)]">
-                      Find your learning partner
-                    </span>
-                  </div>
-                </div>
-              </div>
+            <div className="relative h-[340px] w-full overflow-hidden rounded-3xl bg-[var(--secondary)] shadow-xl shadow-black/10 dark:shadow-black/40 sm:h-[460px] lg:aspect-[4/5] lg:h-auto">
+              <Image
+                src={HERO_IMAGE}
+                alt="Students studying together"
+                fill
+                priority
+                sizes="(max-width: 640px) 90vw, (max-width: 1024px) 48vw, 520px"
+                className="object-cover"
+              />
             </div>
 
-            <div className="absolute -left-4 top-20 hidden items-center gap-3 rounded-2xl bg-[var(--card)] p-4 shadow-xl sm:flex">
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--secondary)] text-[var(--primary)]">
-                <BookOpen size={22} />
+            <div className="absolute left-2 top-5 flex items-center gap-2 rounded-xl bg-[var(--card)] p-2.5 shadow-xl sm:-left-4 sm:top-20 sm:gap-3 sm:rounded-2xl sm:p-4">
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[var(--secondary)] text-[var(--primary)] sm:h-11 sm:w-11 sm:rounded-xl">
+                <BookOpen size={20} />
               </div>
               <div>
-                <p className="text-sm font-bold text-[var(--foreground)]">
+                <p className="text-[11px] font-bold text-[var(--foreground)] sm:text-sm">
                   Learn anything
                 </p>
-                <p className="text-xs text-[var(--muted)]">At your own pace</p>
+                <p className="text-[10px] text-[var(--muted)] sm:text-xs">
+                  At your own pace
+                </p>
               </div>
             </div>
 
-            <div className="absolute -right-4 bottom-24 hidden items-center gap-3 rounded-2xl bg-[var(--card)] p-4 shadow-xl sm:flex">
-              <div className="status-warning flex h-11 w-11 items-center justify-center rounded-xl">
-                <Sparkles size={22} />
+            <div className="absolute bottom-5 right-2 flex items-center gap-2 rounded-xl bg-[var(--card)] p-2.5 shadow-xl sm:-right-4 sm:bottom-24 sm:gap-3 sm:rounded-2xl sm:p-4">
+              <div className="status-warning flex h-9 w-9 items-center justify-center rounded-lg sm:h-11 sm:w-11 sm:rounded-xl">
+                <Sparkles size={20} />
               </div>
               <div>
-                <p className="text-sm font-bold text-[var(--foreground)]">
+                <p className="text-[11px] font-bold text-[var(--foreground)] sm:text-sm">
                   Grow with guidance
                 </p>
-                <p className="text-xs text-[var(--muted)]">Make progress daily</p>
+                <p className="text-[10px] text-[var(--muted)] sm:text-xs">
+                  Make progress daily
+                </p>
               </div>
             </div>
           </motion.div>
