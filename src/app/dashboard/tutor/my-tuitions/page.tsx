@@ -1,674 +1,254 @@
-
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import {
-  BookOpen,
-  Plus,
-  Search,
-  Pencil,
-  Trash2,
-  MapPin,
-  Wallet,
-  Clock3,
-  CheckCircle2,
-  XCircle,
-  LoaderCircle,
-  AlertCircle,
-  RefreshCw,
-  Save,
   ArrowLeft,
-  X,
+  ArrowRight,
+  BookOpen,
+  CheckCircle2,
+  Clock3,
+  Pencil,
+  Plus,
+  RefreshCw,
+  Search,
+  Trash2,
+  XCircle,
 } from "lucide-react";
-import { useRouter } from "next/navigation";
+import TuitionForm, { type TuitionPayload } from "@/components/tutor/TuitionForm";
+import { toast } from "@/components/ToastProvider";
+import { useMyTuitions } from "@/hooks/useMyTuitions";
+import { apiFetch } from "@/lib/api";
+import {
+  classLevelOf,
+  formatFee,
+  modeOf,
+  tuitionFee,
+  tuitionId,
+  type Tuition,
+} from "@/lib/tuitions";
 
-const API_URL =
-  process.env.NODE_ENV === "development" ? "http://localhost:5000" : "";
+const PAGE_SIZE = 6;
 
-type Tuition = {
-  _id: string;
-  title: string;
-  subject: string;
-  description: string;
-  location: string;
-  salary: number;
-  category?: string;
-  banner?: string;
-  approvalStatus: string;
-  isActive?: boolean;
-  createdAt?: string;
-  updatedAt?: string;
-};
-
-type User = {
-  name?: string;
-  email?: string;
-  role?: string;
-  plan?: string;
-  profileImage?: string;
-  image?: string;
-};
-
-type TuitionForm = {
-  title: string;
-  subject: string;
-  description: string;
-  location: string;
-  salary: string;
-  category: string;
-  banner: string;
-};
-
-const initialForm: TuitionForm = {
-  title: "",
-  subject: "",
-  description: "",
-  location: "",
-  salary: "",
-  category: "General",
-  banner: "",
-};
+function statusStyle(status?: string) {
+  switch (status?.toLowerCase()) {
+    case "approved":
+      return "bg-emerald-50 text-emerald-700";
+    case "rejected":
+      return "bg-red-50 text-red-700";
+    default:
+      return "bg-amber-50 text-amber-700";
+  }
+}
 
 export default function TutorMyTuitionsPage() {
-  const router = useRouter();
-
-  const [user, setUser] = useState<User | null>(null);
-  const [tuitions, setTuitions] = useState<Tuition[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [notification, setNotification] = useState("");
+  const { tuitions, loading, error, reload, setTuitions } = useMyTuitions();
   const [search, setSearch] = useState("");
   const [subjectFilter, setSubjectFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [form, setForm] = useState<TuitionForm>(initialForm);
+  const [page, setPage] = useState(1);
+  const [editing, setEditing] = useState<Tuition | null>(null);
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [page, setPage] = useState(1);
-
-  const pageSize = 6;
-
-  const loadTuitions = useCallback(async () => {
-    const token = localStorage.getItem("mentorlagbe-token");
-    const savedUser = localStorage.getItem("mentorlagbe-user");
-
-    if (!token || !savedUser) {
-      router.replace("/sign-in");
-      setLoading(false);
-      return;
-    }
-
-    try {
-      const parsedUser = JSON.parse(savedUser) as User;
-
-      if (parsedUser.role?.toLowerCase() !== "tutor") {
-        router.replace("/sign-in");
-        setLoading(false);
-        return;
-      }
-
-      setUser(parsedUser);
-
-      const response = await fetch(
-        `${API_URL}/api/tuitions/my-tuitions`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-          cache: "no-store",
-        }
-      );
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          result.message || "Failed to load your tuitions."
-        );
-      }
-
-      setTuitions(
-        Array.isArray(result.tuitions) ? result.tuitions : []
-      );
-      setError("");
-    } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Unable to load tuitions."
-      );
-    } finally {
-      setLoading(false);
-    }
-  }, [router]);
-
-  useEffect(() => {
-    loadTuitions();
-  }, [loadTuitions]);
 
   const subjects = useMemo(
-    () =>
-      Array.from(
-        new Set(
-          tuitions
-            .map((tuition) => tuition.subject)
-            .filter(Boolean)
-        )
-      ),
+    () => Array.from(new Set(tuitions.map((item) => item.subject).filter(Boolean))),
     [tuitions]
   );
 
-  const filteredTuitions = useMemo(() => {
-    return tuitions.filter((tuition) => {
-      const searchText = search.toLowerCase();
-
+  const filtered = useMemo(() => {
+    const text = search.trim().toLowerCase();
+    return tuitions.filter((item) => {
       const matchesSearch =
-        tuition.title?.toLowerCase().includes(searchText) ||
-        tuition.subject?.toLowerCase().includes(searchText) ||
-        tuition.location?.toLowerCase().includes(searchText);
-
+        !text ||
+        item.title?.toLowerCase().includes(text) ||
+        item.subject?.toLowerCase().includes(text) ||
+        item.location?.toLowerCase().includes(text);
       const matchesSubject =
-        subjectFilter === "all" ||
-        tuition.subject === subjectFilter;
-
+        subjectFilter === "all" || item.subject === subjectFilter;
       const matchesStatus =
         statusFilter === "all" ||
-        tuition.approvalStatus?.toLowerCase() === statusFilter;
-
+        item.approvalStatus?.toLowerCase() === statusFilter;
       return matchesSearch && matchesSubject && matchesStatus;
     });
   }, [tuitions, search, subjectFilter, statusFilter]);
 
-  const totalPages = Math.max(
-    1,
-    Math.ceil(filteredTuitions.length / pageSize)
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const visible = filtered.slice(
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE
   );
 
-  const paginatedTuitions = filteredTuitions.slice(
-    (page - 1) * pageSize,
-    page * pageSize
-  );
+  const counts = useMemo(() => {
+    const status = (value?: string) => value?.toLowerCase();
+    return {
+      total: tuitions.length,
+      pending: tuitions.filter((item) => status(item.approvalStatus) === "pending").length,
+      approved: tuitions.filter((item) => status(item.approvalStatus) === "approved").length,
+      rejected: tuitions.filter((item) => status(item.approvalStatus) === "rejected").length,
+    };
+  }, [tuitions]);
 
-  useEffect(() => {
-    setPage(1);
-  }, [search, subjectFilter, statusFilter]);
-
-  const pendingCount = tuitions.filter(
-    (item) => item.approvalStatus?.toLowerCase() === "pending"
-  ).length;
-
-  const approvedCount = tuitions.filter(
-    (item) => item.approvalStatus?.toLowerCase() === "approved"
-  ).length;
-
-  const rejectedCount = tuitions.filter(
-    (item) => item.approvalStatus?.toLowerCase() === "rejected"
-  ).length;
-
-  const startEditing = (tuition: Tuition) => {
-    setEditingId(tuition._id);
-
-    setForm({
-      title: tuition.title || "",
-      subject: tuition.subject || "",
-      description: tuition.description || "",
-      location: tuition.location || "",
-      salary: String(tuition.salary ?? ""),
-      category: tuition.category || "General",
-      banner: tuition.banner || "",
-    });
-
-    window.scrollTo({
-      top: 0,
-      behavior: "smooth",
-    });
-  };
-
-  const cancelEditing = () => {
-    setEditingId(null);
-    setForm(initialForm);
-  };
-
-  const handleUpdate = async (
-    event: React.FormEvent<HTMLFormElement>
-  ) => {
-    event.preventDefault();
-
-    if (!editingId) return;
-
-    const token = localStorage.getItem("mentorlagbe-token");
-
-    if (!token) {
-      router.replace("/sign-in");
-      return;
-    }
-
-    if (
-      !form.title.trim() ||
-      !form.subject.trim() ||
-      !form.description.trim() ||
-      !form.location.trim() ||
-      !Number.isFinite(Number(form.salary)) ||
-      Number(form.salary) <= 0
-    ) {
-      setNotification(
-        "Please fill in all required fields correctly."
-      );
-      return;
-    }
+  async function handleUpdate(payload: TuitionPayload) {
+    if (!editing) return;
+    const id = tuitionId(editing);
+    if (!id) return;
 
     try {
       setSaving(true);
-      setNotification("");
-
-      const response = await fetch(
-        `${API_URL}/api/tuitions/${editingId}`,
-        {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            ...form,
-            salary: Number(form.salary),
-          }),
-        }
-      );
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          result.message || "Failed to update tuition."
-        );
-      }
-
-      setNotification(
-        result.message || "Tuition updated successfully."
-      );
-
-      cancelEditing();
-      await loadTuitions();
+      const result = await apiFetch<{ message?: string }>(`/api/tuitions/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify(payload),
+      });
+      toast.success(result.message || "Tuition updated and sent for approval.");
+      setEditing(null);
+      await reload();
     } catch (err) {
-      setNotification(
-        err instanceof Error
-          ? err.message
-          : "Unable to update tuition."
-      );
+      toast.error(err instanceof Error ? err.message : "Unable to update tuition.");
     } finally {
       setSaving(false);
     }
-  };
+  }
 
-  const handleDelete = async (id: string) => {
-    const confirmed = window.confirm(
-      "Are you sure you want to delete this tuition? This action cannot be undone."
-    );
-
-    if (!confirmed) return;
-
-    const token = localStorage.getItem("mentorlagbe-token");
-
-    if (!token) {
-      router.replace("/sign-in");
-      return;
-    }
+  async function handleDelete(id: string) {
+    if (!window.confirm("Delete this tuition? This cannot be undone.")) return;
 
     try {
       setDeletingId(id);
-      setNotification("");
-
-      const response = await fetch(
-        `${API_URL}/api/tuitions/${id}`,
-        {
-          method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          result.message || "Failed to delete tuition."
-        );
-      }
-
+      const result = await apiFetch<{ message?: string }>(`/api/tuitions/${id}`, {
+        method: "DELETE",
+      });
       setTuitions((previous) =>
-        previous.filter((item) => item._id !== id)
+        previous.filter((item) => tuitionId(item) !== id)
       );
-
-      if (editingId === id) {
-        cancelEditing();
-      }
-
-      setNotification(
-        result.message || "Tuition deleted successfully."
-      );
+      toast.success(result.message || "Tuition deleted successfully.");
     } catch (err) {
-      setNotification(
-        err instanceof Error
-          ? err.message
-          : "Unable to delete tuition."
-      );
+      toast.error(err instanceof Error ? err.message : "Unable to delete tuition.");
     } finally {
       setDeletingId(null);
     }
-  };
-
-  const stats = [
-    {
-      title: "Total Tuitions",
-      value: tuitions.length,
-      icon: BookOpen,
-      color: "bg-blue-50 text-blue-600",
-    },
-    {
-      title: "Pending Approval",
-      value: pendingCount,
-      icon: Clock3,
-      color: "bg-amber-50 text-amber-600",
-    },
-    {
-      title: "Approved Tuitions",
-      value: approvedCount,
-      icon: CheckCircle2,
-      color: "bg-green-50 text-green-600",
-    },
-    {
-      title: "Rejected Tuitions",
-      value: rejectedCount,
-      icon: XCircle,
-      color: "bg-red-50 text-red-600",
-    },
-  ];
-
-  const statusStyle = (status: string) => {
-    switch (status?.toLowerCase()) {
-      case "approved":
-        return "bg-green-50 text-green-700";
-      case "rejected":
-        return "bg-red-50 text-red-700";
-      default:
-        return "bg-amber-50 text-amber-700";
-    }
-  };
+  }
 
   return (
-    <div className="min-h-screen bg-[#f7faf8]">
-      <main className="p-4 sm:p-6 lg:p-8">
-        <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-extrabold text-[#142c2b]">
-              My Tuitions
-            </h1>
-            <p className="mt-2 text-sm text-[#647875]">
-              View, edit and manage all your tuition posts.
-            </p>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-3">
-            <button
-              onClick={() => {
-                setLoading(true);
-                loadTuitions();
-              }}
-              disabled={loading}
-              className="flex items-center gap-2 rounded-xl border border-[#dce8e3] bg-white px-4 py-2.5 text-sm font-semibold text-[#647875] hover:bg-[#f2f7f5] disabled:opacity-50"
-            >
-              <RefreshCw
-                size={16}
-                className={loading ? "animate-spin" : ""}
-              />
-              Refresh
-            </button>
-
-            <Link
-              href="/dashboard/tutor/post-tuition"
-              className="flex items-center gap-2 rounded-xl bg-[#087f6e] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[#066657]"
-            >
-              <Plus size={17} />
-              Post a Tuition
-            </Link>
-          </div>
+    <div className="mx-auto w-full max-w-[1600px]">
+      <div className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+        <div>
+          <h1 className="text-xl font-extrabold sm:text-2xl">My Tuitions</h1>
+          <p className="mt-1 text-sm text-[var(--muted)]">
+            View, edit and manage all your tuition posts.
+          </p>
         </div>
-
-        {notification && (
-          <div className="mb-6 flex items-start justify-between gap-3 rounded-xl border border-[#cce7dc] bg-[#effaf5] p-4 text-sm text-[#087f6e]">
-            <p>{notification}</p>
-            <button
-              onClick={() => setNotification("")}
-              aria-label="Dismiss notification"
-            >
-              <X size={18} />
-            </button>
-          </div>
-        )}
-
-        {error && (
-          <div className="mb-6 flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-            <AlertCircle size={20} className="shrink-0" />
-            <p>{error}</p>
-          </div>
-        )}
-
-        <div className="mb-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {stats.map((stat) => {
-            const Icon = stat.icon;
-
-            return (
-              <div
-                key={stat.title}
-                className="rounded-2xl border border-[#e3ebe8] bg-white p-5 shadow-sm"
-              >
-                <div className="flex items-center justify-between">
-                  <p className="text-sm font-medium text-[#647875]">
-                    {stat.title}
-                  </p>
-                  <div className={`rounded-xl p-3 ${stat.color}`}>
-                    <Icon size={21} />
-                  </div>
-                </div>
-                <p className="mt-5 text-3xl font-extrabold text-[#142c2b]">
-                  {stat.value}
-                </p>
-              </div>
-            );
-          })}
+        <div className="flex flex-wrap gap-3">
+          <button
+            type="button"
+            onClick={() => {
+              reload();
+              toast.info("Refreshing your tuitions...");
+            }}
+            disabled={loading}
+            className="btn-secondary"
+          >
+            <RefreshCw size={15} className={loading ? "animate-spin" : ""} />
+            Refresh
+          </button>
+          <Link href="/dashboard/tutor/post-tuition" className="btn-primary">
+            <Plus size={17} />
+            Post a Tuition
+          </Link>
         </div>
+      </div>
 
-        {editingId && (
-          <section className="mb-8 rounded-2xl border border-[#cce7dc] bg-white p-5 shadow-sm sm:p-7">
-            <div className="mb-6 flex items-center justify-between gap-3">
-              <div>
-                <h2 className="text-lg font-extrabold text-[#142c2b]">
-                  Edit Tuition
-                </h2>
-                <p className="mt-1 text-sm text-[#82918c]">
-                  Updated tuition will be submitted for admin approval.
-                </p>
+      <div className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {[
+          { label: "Total Tuitions", value: counts.total, icon: BookOpen },
+          { label: "Pending Approval", value: counts.pending, icon: Clock3 },
+          { label: "Approved", value: counts.approved, icon: CheckCircle2 },
+          { label: "Rejected", value: counts.rejected, icon: XCircle },
+        ].map((item) => {
+          const Icon = item.icon;
+          return (
+            <div key={item.label} className="card p-5">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-sm text-[var(--muted)]">{item.label}</p>
+                <Icon size={20} className="text-[var(--primary)]" />
               </div>
-
-              <button
-                onClick={cancelEditing}
-                className="rounded-lg p-2 text-[#647875] hover:bg-[#f2f7f5]"
-                aria-label="Close edit form"
-              >
-                <X size={21} />
-              </button>
+              <p className="mt-3 text-3xl font-extrabold">{item.value}</p>
             </div>
+          );
+        })}
+      </div>
 
-            <form onSubmit={handleUpdate} className="space-y-5">
-              <div className="grid gap-5 md:grid-cols-2">
-                <div>
-                  <label className="mb-2 block text-sm font-semibold text-[#23413c]">
-                    Tuition Title
-                  </label>
-                  <input
-                    required
-                    value={form.title}
-                    onChange={(event) =>
-                      setForm({ ...form, title: event.target.value })
-                    }
-                    className="w-full rounded-xl border border-[#dce8e3] px-4 py-3 text-sm outline-none focus:border-[#087f6e]"
-                    placeholder="Enter tuition title"
-                  />
-                </div>
+      {error && (
+        <div className="mb-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+          {error}
+        </div>
+      )}
 
-                <div>
-                  <label className="mb-2 block text-sm font-semibold text-[#23413c]">
-                    Subject
-                  </label>
-                  <input
-                    required
-                    value={form.subject}
-                    onChange={(event) =>
-                      setForm({ ...form, subject: event.target.value })
-                    }
-                    className="w-full rounded-xl border border-[#dce8e3] px-4 py-3 text-sm outline-none focus:border-[#087f6e]"
-                    placeholder="Enter subject"
-                  />
-                </div>
+      {editing && (
+        <section className="card mb-8 p-6 sm:p-8">
+          <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-extrabold">Edit Tuition</h2>
+              <p className="mt-1 text-sm text-[var(--muted)]">
+                Updated tuition will be submitted for admin approval.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setEditing(null)}
+              className="btn-secondary"
+            >
+              Close editor
+            </button>
+          </div>
+          <TuitionForm
+            initial={editing}
+            submitLabel="Save Changes"
+            submitting={saving}
+            onSubmit={handleUpdate}
+            onCancel={() => setEditing(null)}
+          />
+        </section>
+      )}
 
-                <div>
-                  <label className="mb-2 block text-sm font-semibold text-[#23413c]">
-                    Location
-                  </label>
-                  <input
-                    required
-                    value={form.location}
-                    onChange={(event) =>
-                      setForm({ ...form, location: event.target.value })
-                    }
-                    className="w-full rounded-xl border border-[#dce8e3] px-4 py-3 text-sm outline-none focus:border-[#087f6e]"
-                    placeholder="Enter location"
-                  />
-                </div>
-
-                <div>
-                  <label className="mb-2 block text-sm font-semibold text-[#23413c]">
-                    Monthly Salary (à§³)
-                  </label>
-                  <input
-                    required
-                    type="number"
-                    min="1"
-                    value={form.salary}
-                    onChange={(event) =>
-                      setForm({ ...form, salary: event.target.value })
-                    }
-                    className="w-full rounded-xl border border-[#dce8e3] px-4 py-3 text-sm outline-none focus:border-[#087f6e]"
-                    placeholder="Enter monthly salary"
-                  />
-                </div>
-
-                <div>
-                  <label className="mb-2 block text-sm font-semibold text-[#23413c]">
-                    Category
-                  </label>
-                  <input
-                    value={form.category}
-                    onChange={(event) =>
-                      setForm({ ...form, category: event.target.value })
-                    }
-                    className="w-full rounded-xl border border-[#dce8e3] px-4 py-3 text-sm outline-none focus:border-[#087f6e]"
-                    placeholder="General"
-                  />
-                </div>
-
-                <div>
-                  <label className="mb-2 block text-sm font-semibold text-[#23413c]">
-                    Banner URL
-                  </label>
-                  <input
-                    type="url"
-                    value={form.banner}
-                    onChange={(event) =>
-                      setForm({ ...form, banner: event.target.value })
-                    }
-                    className="w-full rounded-xl border border-[#dce8e3] px-4 py-3 text-sm outline-none focus:border-[#087f6e]"
-                    placeholder="https://example.com/image.jpg"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="mb-2 block text-sm font-semibold text-[#23413c]">
-                  Description
-                </label>
-                <textarea
-                  required
-                  rows={4}
-                  value={form.description}
-                  onChange={(event) =>
-                    setForm({
-                      ...form,
-                      description: event.target.value,
-                    })
-                  }
-                  className="w-full resize-y rounded-xl border border-[#dce8e3] px-4 py-3 text-sm outline-none focus:border-[#087f6e]"
-                  placeholder="Describe the tuition requirements..."
-                />
-              </div>
-
-              <div className="flex flex-wrap gap-3">
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="flex items-center gap-2 rounded-xl bg-[#087f6e] px-5 py-3 text-sm font-bold text-white hover:bg-[#066657] disabled:opacity-60"
-                >
-                  {saving ? (
-                    <LoaderCircle size={18} className="animate-spin" />
-                  ) : (
-                    <Save size={18} />
-                  )}
-                  {saving ? "Updating..." : "Save Changes"}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={cancelEditing}
-                  className="rounded-xl border border-[#dce8e3] px-5 py-3 text-sm font-semibold text-[#647875] hover:bg-[#f2f7f5]"
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
-          </section>
-        )}
-
-        <section className="rounded-2xl border border-[#e3ebe8] bg-white p-5 shadow-sm sm:p-7">
-          <div className="mb-6">
-            <h2 className="text-lg font-extrabold text-[#142c2b]">
-              All Tuition Posts
-            </h2>
-            <p className="mt-1 text-sm text-[#82918c]">
-              Search and filter your tuition posts.
+      <section className="card overflow-hidden">
+        <div className="border-b border-[var(--border)] p-5 sm:p-7">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-extrabold">All Tuition Posts</h2>
+              <p className="mt-1 text-sm text-[var(--muted)]">
+                Search and filter your tuition posts.
+              </p>
+            </div>
+            <p className="text-xs text-[var(--muted)]">
+              Active/closed toggle is not available in the current API.
             </p>
           </div>
 
-          <div className="mb-6 grid gap-3 md:grid-cols-3">
+          <div className="mt-5 grid gap-3 md:grid-cols-3">
             <div className="relative">
               <Search
-                size={18}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-[#82918c]"
+                size={17}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted)]"
               />
               <input
                 value={search}
-                onChange={(event) => setSearch(event.target.value)}
+                onChange={(event) => {
+                  setSearch(event.target.value);
+                  setPage(1);
+                }}
                 placeholder="Search tuition..."
-                className="w-full rounded-xl border border-[#dce8e3] py-3 pl-10 pr-4 text-sm outline-none focus:border-[#087f6e]"
+                className="field-input pl-10"
               />
             </div>
-
             <select
               value={subjectFilter}
-              onChange={(event) => setSubjectFilter(event.target.value)}
-              className="rounded-xl border border-[#dce8e3] px-4 py-3 text-sm outline-none focus:border-[#087f6e]"
+              onChange={(event) => {
+                setSubjectFilter(event.target.value);
+                setPage(1);
+              }}
+              className="field-input"
             >
               <option value="all">All Subjects</option>
               {subjects.map((subject) => (
@@ -677,11 +257,13 @@ export default function TutorMyTuitionsPage() {
                 </option>
               ))}
             </select>
-
             <select
               value={statusFilter}
-              onChange={(event) => setStatusFilter(event.target.value)}
-              className="rounded-xl border border-[#dce8e3] px-4 py-3 text-sm outline-none focus:border-[#087f6e]"
+              onChange={(event) => {
+                setStatusFilter(event.target.value);
+                setPage(1);
+              }}
+              className="field-input"
             >
               <option value="all">All Statuses</option>
               <option value="pending">Pending</option>
@@ -689,95 +271,62 @@ export default function TutorMyTuitionsPage() {
               <option value="rejected">Rejected</option>
             </select>
           </div>
+        </div>
 
-          {loading ? (
-            <div className="flex min-h-64 items-center justify-center">
-              <LoaderCircle
-                size={35}
-                className="animate-spin text-[#087f6e]"
-              />
-            </div>
-          ) : paginatedTuitions.length === 0 ? (
-            <div className="py-14 text-center">
-              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-[#e8f5f1] text-[#087f6e]">
-                <BookOpen size={30} />
-              </div>
-
-              <h3 className="mt-4 font-bold text-[#142c2b]">
-                {tuitions.length === 0
-                  ? "No tuitions posted yet"
-                  : "No matching tuitions found"}
-              </h3>
-
-              <p className="mt-2 text-sm text-[#82918c]">
-                {tuitions.length === 0
-                  ? "Create your first tuition post to get started."
-                  : "Try changing your search or filters."}
-              </p>
-
-              {tuitions.length === 0 && (
-                <Link
-                  href="/dashboard/tutor/post-tuition"
-                  className="mt-5 inline-flex items-center gap-2 rounded-xl bg-[#087f6e] px-5 py-3 text-sm font-bold text-white hover:bg-[#066657]"
-                >
-                  <Plus size={17} />
-                  Post a Tuition
-                </Link>
-              )}
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {paginatedTuitions.map((tuition) => (
-                <div
-                  key={tuition._id}
-                  className="rounded-xl border border-[#e3ebe8] p-4 transition hover:border-[#b8d8cd] sm:p-5"
-                >
+        {loading ? (
+          <div className="space-y-3 p-5 sm:p-7">
+            {Array.from({ length: 4 }).map((_, index) => (
+              <div key={index} className="skeleton h-28 rounded-xl" />
+            ))}
+          </div>
+        ) : visible.length === 0 ? (
+          <div className="empty-state m-5 sm:m-7">
+            <BookOpen className="mx-auto text-[var(--primary)]" size={30} />
+            <h3 className="mt-4 font-bold">
+              {tuitions.length === 0
+                ? "No tuitions posted yet"
+                : "No matching tuitions found"}
+            </h3>
+            <p className="mx-auto mt-2 max-w-md text-sm text-[var(--muted)]">
+              {tuitions.length === 0
+                ? "Create your first tuition post to get started."
+                : "Try changing your search or filters."}
+            </p>
+            {tuitions.length === 0 && (
+              <Link href="/dashboard/tutor/post-tuition" className="btn-primary mt-5">
+                <Plus size={16} />
+                Post a Tuition
+              </Link>
+            )}
+          </div>
+        ) : (
+          <div className="divide-y divide-[var(--border)]">
+            {visible.map((tuition, index) => {
+              const id = tuitionId(tuition);
+              const status = tuition.approvalStatus || "pending";
+              return (
+                <div key={id || index} className="p-5 sm:p-7">
                   <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-start">
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
-                        <h3 className="text-base font-bold text-[#142c2b]">
-                          {tuition.title}
-                        </h3>
-
-                        <span
-                          className={`rounded-full px-3 py-1 text-xs font-bold capitalize ${statusStyle(
-                            tuition.approvalStatus
-                          )}`}
-                        >
-                          {tuition.approvalStatus || "pending"}
+                        <h3 className="text-base font-bold">{tuition.title}</h3>
+                        <span className={`badge capitalize ${statusStyle(status)}`}>
+                          {status}
                         </span>
                       </div>
-
-                      <p className="mt-2 text-sm font-medium text-[#087f6e]">
-                        {tuition.subject}
+                      <p className="mt-2 text-sm font-semibold text-[var(--primary)]">
+                        {tuition.subject} · {classLevelOf(tuition)} · {modeOf(tuition)}
                       </p>
-
-                      <p className="mt-3 text-sm leading-6 text-[#647875]">
+                      <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
                         {tuition.description}
                       </p>
-
-                      <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-xs text-[#82918c]">
-                        <span className="flex items-center gap-1.5">
-                          <MapPin size={15} />
-                          {tuition.location}
-                        </span>
-
-                        <span className="flex items-center gap-1.5">
-                          <Wallet size={15} />
-                          à§³{Number(tuition.salary).toLocaleString("en-BD")} / month
-                        </span>
-
-                        <span className="flex items-center gap-1.5">
-                          <BookOpen size={15} />
-                          {tuition.category || "General"}
-                        </span>
-
+                      <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-xs text-[var(--muted)]">
+                        <span>{tuition.location}</span>
+                        <span>{formatFee(tuitionFee(tuition))}</span>
+                        <span>{tuition.daysPerWeek} days/week</span>
                         {tuition.createdAt && (
-                          <span className="flex items-center gap-1.5">
-                            <Clock3 size={15} />
-                            {new Date(
-                              tuition.createdAt
-                            ).toLocaleDateString()}
+                          <span>
+                            {new Date(tuition.createdAt).toLocaleDateString("en-BD")}
                           </span>
                         )}
                       </div>
@@ -785,70 +334,65 @@ export default function TutorMyTuitionsPage() {
 
                     <div className="flex shrink-0 gap-2 lg:flex-col">
                       <button
-                        onClick={() => startEditing(tuition)}
-                        className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-[#cce7dc] px-4 py-2.5 text-xs font-bold text-[#087f6e] transition hover:bg-[#e8f5f1] lg:flex-none"
+                        type="button"
+                        onClick={() => setEditing(tuition)}
+                        className="btn-secondary flex-1 justify-center text-xs lg:flex-none"
                       >
-                        <Pencil size={15} />
+                        <Pencil size={14} />
                         Edit
                       </button>
-
-                      <button
-                        onClick={() => handleDelete(tuition._id)}
-                        disabled={deletingId === tuition._id}
-                        className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-red-200 px-4 py-2.5 text-xs font-bold text-red-600 transition hover:bg-red-50 disabled:opacity-50 lg:flex-none"
-                      >
-                        {deletingId === tuition._id ? (
-                          <LoaderCircle
-                            size={15}
-                            className="animate-spin"
-                          />
-                        ) : (
-                          <Trash2 size={15} />
-                        )}
-                        Delete
-                      </button>
+                      {id && (
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(id)}
+                          disabled={deletingId !== null}
+                          className="btn-danger flex-1 justify-center text-xs lg:flex-none"
+                        >
+                          <Trash2 size={14} />
+                          {deletingId === id ? "Deleting..." : "Delete"}
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
-              ))}
+              );
+            })}
+          </div>
+        )}
+
+        {!loading && filtered.length > 0 && (
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--border)] p-5 sm:p-7">
+            <p className="text-sm text-[var(--muted)]">
+              Showing {(currentPage - 1) * PAGE_SIZE + 1}–
+              {Math.min(currentPage * PAGE_SIZE, filtered.length)} of{" "}
+              {filtered.length}
+            </p>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setPage(currentPage - 1)}
+                disabled={currentPage === 1}
+                className="btn-secondary"
+              >
+                <ArrowLeft size={16} />
+                Previous
+              </button>
+              <span className="px-2 text-sm font-semibold">
+                {currentPage} / {totalPages}
+              </span>
+              <button
+                type="button"
+                onClick={() => setPage(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                className="btn-secondary"
+              >
+                Next
+                <ArrowRight size={16} />
+              </button>
             </div>
-          )}
-
-          {!loading && filteredTuitions.length > 0 && (
-            <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-[#e3ebe8] pt-5">
-              <p className="text-sm text-[#82918c]">
-                Showing {(page - 1) * pageSize + 1}â€“
-                {Math.min(page * pageSize, filteredTuitions.length)} of{" "}
-                {filteredTuitions.length} tuitions
-              </p>
-
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setPage((current) => current - 1)}
-                  disabled={page === 1}
-                  className="rounded-lg border border-[#dce8e3] p-2 text-[#647875] hover:bg-[#f2f7f5] disabled:cursor-not-allowed disabled:opacity-40"
-                  aria-label="Previous page"
-                >
-                  <ArrowLeft size={17} />
-                </button>
-
-                <span className="px-2 text-sm font-semibold text-[#647875]">
-                  {page} / {totalPages}
-                </span>
-
-                <button
-                  onClick={() => setPage((current) => current + 1)}
-                  disabled={page === totalPages}
-                  className="rounded-lg border border-[#dce8e3] p-2 text-[#647875] hover:bg-[#f2f7f5] disabled:cursor-not-allowed disabled:opacity-40"
-                  aria-label="Next page"
-                >
-                  <ArrowLeft size={17} className="rotate-180" />
-                </button>
-              </div>
-            </div>
-          )}
-        </section>
-      </main>
+          </div>
+        )}
+      </section>
     </div>
   );
 }
