@@ -31,6 +31,23 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * Better Auth session token used only for exchanging into the backend JWT.
+ * Kept in memory so the JWT refresh path also works when cross-site cookies
+ * are unavailable.
+ */
+let betterAuthSessionToken: string | null = null;
+
+export function rememberBetterAuthSessionToken(token?: string | null): void {
+  if (typeof token === "string" && token.trim()) {
+    betterAuthSessionToken = token.trim();
+  }
+}
+
+export function clearBetterAuthSessionToken(): void {
+  betterAuthSessionToken = null;
+}
+
 export function getStoredToken(): string | null {
   if (typeof window === "undefined") return null;
   return window.localStorage.getItem(TOKEN_KEY);
@@ -66,16 +83,26 @@ export function clearStoredSession(): void {
   window.dispatchEvent(new Event("user-updated"));
 }
 
-/** Exchange the BetterAuth cookie session for the backend JWT. */
-async function exchangeCookieForToken(): Promise<{
+/** Exchange the BetterAuth session for the backend JWT. */
+async function exchangeCookieForToken(
+  sessionToken: string | null = betterAuthSessionToken
+): Promise<{
   token: string;
   user: AuthUser;
 } | null> {
   try {
+    const requestHeaders = new Headers({ Accept: "application/json" });
+
+    // Cross-site cookies can be blocked in production. The backend accepts the
+    // Better Auth session token as a bearer in that case.
+    if (sessionToken) {
+      requestHeaders.set("Authorization", `Bearer ${sessionToken}`);
+    }
+
     const response = await fetch(apiPath("/api/token"), {
       method: "GET",
       credentials: "include",
-      headers: { Accept: "application/json" },
+      headers: requestHeaders,
     });
 
     if (!response.ok) return null;
@@ -97,12 +124,19 @@ let refreshPromise: Promise<boolean> | null = null;
  * Ensures a JWT is available. A stored token is reused unless `force` is set.
  * Concurrent callers share a single /api/token request.
  */
-export function ensureFreshToken(force = false): Promise<boolean> {
+export function ensureFreshToken(
+  force = false,
+  sessionToken?: string | null
+): Promise<boolean> {
+  rememberBetterAuthSessionToken(sessionToken);
+
   if (!force && getStoredToken()) return Promise.resolve(true);
 
   if (refreshPromise) return refreshPromise;
 
-  refreshPromise = exchangeCookieForToken()
+  refreshPromise = exchangeCookieForToken(
+    sessionToken ?? betterAuthSessionToken
+  )
     .then((result) => Boolean(result))
     .catch(() => false)
     .finally(() => {

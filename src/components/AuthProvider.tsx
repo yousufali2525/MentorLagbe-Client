@@ -12,6 +12,7 @@ import {
 import { authClient } from "@/lib/auth-client";
 import {
   apiFetch,
+  clearBetterAuthSessionToken,
   clearStoredSession,
   ensureFreshToken,
   getStoredToken,
@@ -39,6 +40,28 @@ type AuthContextValue = {
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
+/** Reads the Better Auth session token from any response/session shape. */
+function extractSessionToken(value: unknown): string | null {
+  if (!value || typeof value !== "object") return null;
+
+  const payload = value as {
+    token?: unknown;
+    session?: { token?: unknown } | null;
+  };
+  const token = payload.token ?? payload.session?.token;
+
+  return typeof token === "string" && token.trim() ? token.trim() : null;
+}
+
+async function readSessionToken(): Promise<string | null> {
+  try {
+    const sessionResult = await authClient.getSession();
+    return extractSessionToken(sessionResult.data);
+  } catch {
+    return null;
+  }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<AuthStatus>("loading");
   const [user, setUser] = useState<AuthUser | null>(null);
@@ -64,9 +87,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const sessionResult = await authClient.getSession();
       const sessionUser = sessionResult.data?.user;
+      const sessionToken = extractSessionToken(sessionResult.data);
 
-      if (sessionUser) {
-        await ensureFreshToken(true);
+      if (sessionUser || sessionToken) {
+        await ensureFreshToken(true, sessionToken);
       }
     } catch {
       // A transient network failure must not log a valid JWT out.
@@ -89,9 +113,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         const sessionResult = await authClient.getSession();
         const sessionUser = sessionResult.data?.user;
+        const sessionToken = extractSessionToken(sessionResult.data);
 
-        if (sessionUser) {
-          await ensureFreshToken(true);
+        if (sessionUser || sessionToken) {
+          await ensureFreshToken(true, sessionToken);
         }
       } catch {
         // Fall through to the stored JWT check below.
@@ -130,13 +155,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signIn = useCallback(
     async ({ email, password }: SignInInput) => {
-      const result = await authClient.signIn.email({ email, password });
+      const tokenFromHeader: { value: string | null } = { value: null };
+
+      const result = await authClient.signIn.email(
+        { email, password },
+        {
+          onResponse: (context) => {
+            try {
+              tokenFromHeader.value =
+                context.response.headers.get("set-auth-token") || null;
+            } catch {
+              // The header may not be exposed by CORS; the body/session
+              // fallbacks below still provide the session token.
+            }
+          },
+        }
+      );
 
       if (result.error) {
         throw new Error(result.error.message || "Invalid email or password.");
       }
 
-      const exchanged = await ensureFreshToken(true);
+      const sessionToken =
+        extractSessionToken(result.data) ??
+        tokenFromHeader.value ??
+        (await readSessionToken());
+
+      const exchanged = await ensureFreshToken(true, sessionToken);
       if (!exchanged) {
         throw new Error("Unable to create an authentication session.");
       }
@@ -179,6 +224,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Clear local state even when the network request fails.
     }
 
+    clearBetterAuthSessionToken();
     clearStoredSession();
     setToken(null);
     setUser(null);
