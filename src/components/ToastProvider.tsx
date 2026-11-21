@@ -1,59 +1,54 @@
-
 "use client";
 
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useState,
-  type ReactNode,
-} from "react";
-import Toast, { type ToastType } from "./Toast";
+import type { ReactNode } from "react";
+import { Toaster, toast } from "sonner";
+import { useTheme } from "@/components/ThemeProvider";
 
-type ToastContextType = {
-  showToast: (message: string, type?: ToastType) => void;
-};
+export { toast };
 
-const ToastContext = createContext<ToastContextType | undefined>(undefined);
+export type ToastType = "success" | "error" | "warning" | "info" | "loading";
 
 export function ToastProvider({ children }: { children: ReactNode }) {
-  const [toast, setToast] = useState<{
-    message: string;
-    type: ToastType;
-  } | null>(null);
-
-  const showToast = useCallback(
-    (message: string, type: ToastType = "success") => {
-      setToast({ message, type });
-    },
-    []
-  );
-
-  const closeToast = useCallback(() => {
-    setToast(null);
-  }, []);
+  const { theme } = useTheme();
 
   return (
-    <ToastContext.Provider value={{ showToast }}>
+    <>
       {children}
-
-      {toast && (
-        <Toast
-          message={toast.message}
-          type={toast.type}
-          onClose={closeToast}
-        />
-      )}
-    </ToastContext.Provider>
+      <Toaster
+        position="top-right"
+        richColors
+        closeButton
+        expand
+        theme={theme}
+        toastOptions={{
+          classNames: {
+            toast: "!rounded-xl !border-[var(--border)] !font-medium",
+          },
+        }}
+      />
+    </>
   );
 }
 
 export function useToast() {
-  const context = useContext(ToastContext);
+  const showToast = (message: string, type: ToastType = "success") => {
+    switch (type) {
+      case "error":
+        toast.error(message);
+        break;
+      case "warning":
+        toast.warning(message);
+        break;
+      case "info":
+        toast.info(message);
+        break;
+      case "loading":
+        toast.loading(message);
+        break;
+      default:
+        toast.success(message);
+    }
+  };
 
-  if (!context) {
-    throw new Error("useToast must be used inside ToastProvider");
-  }
-
-  return context;
+  return { showToast };
 }
