@@ -256,17 +256,17 @@ svg {
     align-items: center;
     justify-content: center;
     border-radius: 0.75rem;
-    background: var(--primary-foreground);
-    color: var(--primary);
+    background: #ffffff;
+    color: #065f46 !important;
     font-size: 0.875rem;
-    font-weight: 700;
+    font-weight: 600;
     line-height: 1.2;
     padding: 0.75rem 1.25rem;
-    transition: opacity 160ms ease, transform 160ms ease;
+    transition: opacity 160ms ease, transform 160ms ease, background-color 160ms ease;
   }
 
   .upgrade-button:hover:not(:disabled) {
-    opacity: 0.9;
+    background: #f0fdf4;
     transform: translateY(-1px);
   }
 
