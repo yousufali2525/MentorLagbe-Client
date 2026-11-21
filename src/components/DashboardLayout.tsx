@@ -9,7 +9,7 @@ import {
   type ReactNode,
 } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import {
   BookOpen,
   ChevronDown,
@@ -379,7 +379,6 @@ export default function DashboardLayout({
   children: ReactNode;
 }) {
   const pathname = usePathname();
-  const router = useRouter();
   const { user, signOut } = useAuth();
   const userMenuRef = useRef<HTMLDivElement>(null);
 
@@ -407,9 +406,7 @@ export default function DashboardLayout({
     setUserMenuOpen(false);
     setMobileOpen(false);
     await signOut();
-    router.replace("/sign-in");
-    router.refresh();
-  }, [router, signOut]);
+  }, [signOut]);
 
   useEffect(() => {
     setMobileOpen(false);

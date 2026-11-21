@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import {
   ChevronDown,
   LayoutDashboard,
@@ -29,7 +29,6 @@ export default function Navbar() {
   const [imageError, setImageError] = useState(false);
 
   const pathname = usePathname();
-  const router = useRouter();
   const { user, status, signOut } = useAuth();
   const loading = status === "loading";
 
@@ -37,8 +36,6 @@ export default function Navbar() {
     setUserMenuOpen(false);
     setMobileMenuOpen(false);
     await signOut();
-    router.replace("/sign-in");
-    router.refresh();
   };
 
   const profileImage =

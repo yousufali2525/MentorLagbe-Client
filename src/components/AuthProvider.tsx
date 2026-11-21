@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import {
   createContext,
   useCallback,
@@ -32,6 +33,7 @@ type AuthContextValue = {
   status: AuthStatus;
   user: AuthUser | null;
   token: string | null;
+  isSigningOut: boolean;
   signIn: (input: SignInInput) => Promise<AuthUser>;
   signUp: (input: SignUpInput) => Promise<unknown>;
   signOut: () => Promise<void>;
@@ -76,9 +78,11 @@ function extractSessionUser(value: unknown): AuthUser | null {
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const router = useRouter();
   const [status, setStatus] = useState<AuthStatus>("loading");
   const [user, setUser] = useState<AuthUser | null>(null);
   const [token, setToken] = useState<string | null>(null);
+  const [isSigningOut, setIsSigningOut] = useState(false);
 
   const applyStoredSession = useCallback(() => {
     const storedToken = getStoredToken();
@@ -236,10 +240,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signOut = useCallback(async () => {
+    // Keep route guards from redirecting to /sign-in while the sign-out is in
+    // progress; the destination is always the home page.
+    setIsSigningOut(true);
+
     try {
       await authClient.signOut();
     } catch {
-      // Clear local state even when the network request fails.
+      // Clear local state and redirect even when the request fails.
     }
 
     clearBetterAuthSessionToken();
@@ -247,8 +255,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setToken(null);
     setUser(null);
     setStatus("unauthenticated");
-    toast.success("You have been signed out.");
-  }, []);
+    toast.success("Signed out successfully");
+
+    router.replace("/");
+
+    // Let the toast render, then force a full reload so no cached private
+    // dashboard content can be restored from the client-side router cache.
+    window.setTimeout(() => {
+      try {
+        window.history.replaceState(null, "", "/");
+      } catch {
+        // The router.replace above already handles normal navigation.
+      }
+      window.location.assign("/");
+    }, 350);
+  }, [router]);
 
   const refreshUser = useCallback(async () => {
     const currentToken = getStoredToken();
@@ -271,13 +292,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       status,
       user,
       token,
+      isSigningOut,
       signIn,
       signUp,
       signOut,
       refreshSession,
       refreshUser,
     }),
-    [status, user, token, signIn, signUp, signOut, refreshSession, refreshUser]
+    [status, user, token, isSigningOut, signIn, signUp, signOut, refreshSession, refreshUser]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
