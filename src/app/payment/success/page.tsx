@@ -1,208 +1,191 @@
-
 "use client";
 
-import { useEffect, useState, Suspense } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import {
+  ArrowRight,
+  CheckCircle2,
+  Clock3,
+  LoaderCircle,
+  XCircle,
+} from "lucide-react";
+import { useAuth } from "@/components/AuthProvider";
+import { toast } from "@/components/ToastProvider";
+import { apiFetch } from "@/lib/api";
+import { dashboardHrefForRole, normalizeRole } from "@/lib/roles";
 
-const API_URL =
-  process.env.NODE_ENV === "development" ? "http://localhost:5000" : "";
-
-type User = {
-  id?: string;
-  name?: string;
-  email?: string;
-  role?: string;
-  plan?: string;
+type PaymentRecord = {
+  stripeSessionId?: string;
+  paymentStatus?: string;
 };
 
-function getDashboardPath(role?: string) {
-  switch (String(role || "").toLowerCase()) {
-    case "student":
-      return "/dashboard/student";
+type PaymentsResponse = {
+  success?: boolean;
+  payments?: PaymentRecord[];
+};
 
-    case "tutor":
-      return "/dashboard/tutor";
-
-    case "admin":
-      return "/dashboard/admin";
-
-    default:
-      return "/sign-in";
-  }
-}
+type VerifyStatus = "loading" | "verified" | "pending" | "error" | "no-session";
 
 function PaymentSuccessContent() {
   const searchParams = useSearchParams();
   const sessionId = searchParams.get("session_id");
+  const { status: authStatus, user, refreshUser } = useAuth();
 
-  const [message, setMessage] = useState("Verifying your payment...");
-  const [status, setStatus] = useState<"loading" | "success" | "error">(
-    "loading"
-  );
-  const [dashboardPath, setDashboardPath] = useState("/sign-in");
+  const [status, setStatus] = useState<VerifyStatus>("loading");
+  const [attempts, setAttempts] = useState(0);
+  const toastShown = useRef(false);
+  const userId = user?._id || user?.id || "";
 
   useEffect(() => {
+    if (authStatus === "loading") return;
+
+    if (!sessionId) {
+      setStatus("no-session");
+      if (!toastShown.current) {
+        toast.error("No Stripe session was found in the return URL.");
+        toastShown.current = true;
+      }
+      return;
+    }
+
+    if (!userId) {
+      setStatus("error");
+      if (!toastShown.current) {
+        toast.error("Sign in to verify your payment and update your plan.");
+        toastShown.current = true;
+      }
+      return;
+    }
+
     let cancelled = false;
 
-    const verifyPayment = async () => {
-      const token = localStorage.getItem("mentorlagbe-token");
+    async function verify() {
+      setStatus("loading");
 
-      const storedUser = localStorage.getItem("mentorlagbe-user");
+      for (let attempt = 0; attempt < 10; attempt += 1) {
+        if (cancelled) return;
+        setAttempts(attempt + 1);
 
-      if (storedUser) {
         try {
-          const user: User = JSON.parse(storedUser);
-          setDashboardPath(getDashboardPath(user.role));
+          const result = await apiFetch<PaymentsResponse>(
+            "/api/payments/my-payments",
+            { cache: "no-store" }
+          );
+
+          const confirmed = result.payments?.some(
+            (payment) =>
+              payment.stripeSessionId === sessionId &&
+              payment.paymentStatus === "paid"
+          );
+
+          if (cancelled) return;
+
+          if (confirmed) {
+            await refreshUser().catch(() => undefined);
+            if (cancelled) return;
+            setStatus("verified");
+            if (!toastShown.current) {
+              toast.success("Payment confirmed. Your Pro plan is active!");
+              toastShown.current = true;
+            }
+            return;
+          }
         } catch {
-          localStorage.removeItem("mentorlagbe-user");
+          // Keep polling: the Stripe webhook may not have been processed yet.
+        }
+
+        if (cancelled) return;
+        if (attempt < 9) {
+          await new Promise((resolve) => window.setTimeout(resolve, 1500));
         }
       }
 
-      if (!sessionId || !token) {
-        if (cancelled) return;
-
-        setMessage(
-          "Payment information could not be verified. Please sign in and check your payment history."
+      if (cancelled) return;
+      setStatus("pending");
+      if (!toastShown.current) {
+        toast.warning(
+          "Payment is still processing. Please check your dashboard shortly."
         );
-        setStatus("error");
-        return;
+        toastShown.current = true;
       }
+    }
 
-      try {
-        let paymentConfirmed = false;
-
-        for (let attempt = 0; attempt < 8; attempt++) {
-          if (cancelled) return;
-
-          const response = await fetch(
-            `${API_URL}/api/payments/my-payments`,
-            {
-              headers: {
-                Authorization: `Bearer ${token}`,
-              },
-              cache: "no-store",
-            }
-          );
-
-          if (!response.ok) {
-            throw new Error("Unable to verify payment");
-          }
-
-          const data = await response.json();
-
-          const payment = data.payments?.find(
-            (item: {
-              stripeSessionId: string;
-              paymentStatus: string;
-            }) =>
-              item.stripeSessionId === sessionId &&
-              item.paymentStatus === "paid"
-          );
-
-          if (payment) {
-            paymentConfirmed = true;
-            break;
-          }
-
-          await new Promise((resolve) => setTimeout(resolve, 1500));
-        }
-
-        if (cancelled) return;
-
-        if (paymentConfirmed) {
-          const userResponse = await fetch(`${API_URL}/api/users/me`, {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-            cache: "no-store",
-          });
-
-          if (userResponse.ok) {
-            const userData = await userResponse.json();
-            const user: User = userData.user || userData;
-
-            if (user && user.role) {
-              localStorage.setItem(
-                "mentorlagbe-user",
-                JSON.stringify(user)
-              );
-
-              setDashboardPath(getDashboardPath(user.role));
-            }
-          }
-
-          if (cancelled) return;
-
-          setMessage(
-            "Your payment was successful. Your Pro membership is now active."
-          );
-          setStatus("success");
-        } else {
-          setMessage(
-            "Your payment was received, but confirmation is still processing. Please check your dashboard again shortly."
-          );
-          setStatus("error");
-        }
-      } catch {
-        if (cancelled) return;
-
-        setMessage(
-          "We could not verify your payment right now. Please check your payment history or try again later."
-        );
-        setStatus("error");
-      }
-    };
-
-    verifyPayment();
-
+    verify();
     return () => {
       cancelled = true;
     };
-  }, [sessionId]);
+  }, [authStatus, sessionId, userId, refreshUser]);
+
+  const title =
+    status === "verified"
+      ? "Payment Successful!"
+      : status === "pending"
+        ? "Payment is Processing"
+        : status === "no-session"
+          ? "Missing Payment Session"
+          : status === "error"
+            ? "Sign In Required"
+            : "Verifying Your Payment";
+
+  const message =
+    status === "verified"
+      ? "Your payment was confirmed and your Pro membership is now active."
+      : status === "pending"
+        ? "Stripe accepted your payment, but the webhook has not confirmed it yet. Your plan will update automatically once confirmation arrives."
+        : status === "no-session"
+          ? "We could not find a Stripe session in the return link. If you completed a payment, check your dashboard or contact support."
+          : status === "error"
+            ? "Please sign in with the account you used for checkout so we can verify the payment."
+            : `Checking your payment record${attempts ? ` (attempt ${attempts})` : ""}...`;
+
+  const Icon =
+    status === "verified"
+      ? CheckCircle2
+      : status === "pending"
+        ? Clock3
+        : status === "loading"
+          ? LoaderCircle
+          : XCircle;
+
+  const iconStyle =
+    status === "verified"
+      ? "bg-emerald-50 text-emerald-600"
+      : status === "pending"
+        ? "bg-amber-50 text-amber-600"
+        : status === "loading"
+          ? "bg-[var(--secondary)] text-[var(--primary)]"
+          : "bg-red-50 text-red-600";
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12">
-      <div className="w-full max-w-lg rounded-2xl bg-white p-8 text-center shadow-lg">
+    <main className="flex min-h-screen items-center justify-center bg-[var(--background)] px-4 py-12">
+      <div className="card w-full max-w-lg p-8 text-center">
         <div
-          className={`mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-full text-4xl ${
-            status === "success"
-              ? "bg-green-100 text-green-600"
-              : status === "error"
-                ? "bg-red-100 text-red-600"
-                : "bg-blue-100 text-blue-600"
-          }`}
+          className={`mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-full ${iconStyle}`}
         >
-          {status === "success" ? "âœ“" : status === "error" ? "!" : "â€¦"}
+          <Icon size={38} className={status === "loading" ? "animate-spin" : ""} />
         </div>
 
-        <h1 className="mb-3 text-3xl font-bold text-gray-900">
-          {status === "success"
-            ? "Payment Successful!"
-            : status === "error"
-              ? "Payment Verification"
-              : "Verifying Payment"}
-        </h1>
-
-        <p className="mb-8 text-gray-600">{message}</p>
+        <h1 className="text-2xl font-extrabold sm:text-3xl">{title}</h1>
+        <p className="mt-3 text-sm leading-7 text-[var(--muted)]">{message}</p>
 
         {status === "loading" ? (
-          <div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent" />
+          <div className="mt-8 flex justify-center">
+            <LoaderCircle
+              size={28}
+              className="animate-spin text-[var(--primary)]"
+            />
+          </div>
         ) : (
-          <div className="flex flex-col justify-center gap-3 sm:flex-row">
+          <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
             <Link
-              href={dashboardPath}
-              className="rounded-lg bg-blue-600 px-6 py-3 font-semibold text-white hover:bg-blue-700"
+              href={user ? dashboardHrefForRole(normalizeRole(user.role)) : "/sign-in"}
+              className="btn-primary h-12 justify-center px-6"
             >
-              {dashboardPath === "/sign-in"
-                ? "Sign In"
-                : "Go to Dashboard"}
+              {user ? "Go to Dashboard" : "Sign In"}
+              <ArrowRight size={16} />
             </Link>
-
-            <Link
-              href="/pricing"
-              className="rounded-lg border border-gray-300 px-6 py-3 font-semibold text-gray-700 hover:bg-gray-50"
-            >
+            <Link href="/pricing" className="btn-secondary h-12 justify-center px-6">
               View Plans
             </Link>
           </div>
@@ -216,9 +199,11 @@ export default function PaymentSuccessPage() {
   return (
     <Suspense
       fallback={
-        <div 
-         className="flex min-h-screen items-center justify-center">
-          Loading payment information...
+        <div className="flex min-h-screen items-center justify-center bg-[var(--background)]">
+          <LoaderCircle
+            size={30}
+            className="animate-spin text-[var(--primary)]"
+          />
         </div>
       }
     >
