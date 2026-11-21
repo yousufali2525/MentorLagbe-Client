@@ -1,6 +1,9 @@
 "use client";
 
 import { useEffect } from "react";
+import Link from "next/link";
+import { AlertTriangle, Home, RotateCcw } from "lucide-react";
+import { toast } from "@/components/ToastProvider";
 
 export default function Error({
   error,
@@ -11,28 +14,39 @@ export default function Error({
 }) {
   useEffect(() => {
     console.error("MentorLagbe Error:", error);
+    toast.error("Something went wrong. Please try again.");
   }, [error]);
 
   return (
-    <div className="flex min-h-[60vh] items-center justify-center bg-gray-50 px-4">
-      <div className="w-full max-w-md rounded-2xl bg-white p-8 text-center shadow-lg">
-        <div className="mb-4 text-5xl">⚠️</div>
+    <main className="flex min-h-[70vh] items-center justify-center bg-[var(--background)] px-4 py-12">
+      <div className="card w-full max-w-md p-8 text-center">
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[var(--secondary)] text-[var(--warning)]">
+          <AlertTriangle size={30} />
+        </div>
 
-        <h2 className="mb-3 text-2xl font-bold text-gray-800">
-          Something went wrong!
-        </h2>
-
-        <p className="mb-6 text-gray-600">
-          An unexpected error occurred. Please try again.
+        <h1 className="section-title mt-6 text-2xl">Something went wrong!</h1>
+        <p className="mt-3 text-sm leading-7 text-[var(--muted)]">
+          An unexpected error occurred. Try again, or return to the home page.
         </p>
 
-        <button
-          onClick={() => reset()}
-          className="rounded-lg bg-blue-600 px-6 py-3 font-medium text-white transition hover:bg-blue-700"
-        >
-          Try Again
-        </button>
+        <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
+          <button
+            type="button"
+            onClick={() => reset()}
+            className="btn-primary h-11 justify-center px-5"
+          >
+            <RotateCcw size={16} />
+            Try Again
+          </button>
+          <Link
+            href="/"
+            className="btn-secondary h-11 justify-center px-5"
+          >
+            <Home size={16} />
+            Back to Home
+          </Link>
+        </div>
       </div>
-    </div>
+    </main>
   );
 }

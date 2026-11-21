@@ -1,28 +1,37 @@
 import Link from "next/link";
+import { ArrowRight, Home, SearchX } from "lucide-react";
 
 export default function NotFound() {
   return (
-    <div className="flex min-h-[70vh] items-center justify-center bg-gray-50 px-4">
-      <div className="w-full max-w-lg rounded-2xl bg-white p-10 text-center shadow-lg">
-        <h1 className="mb-2 text-8xl font-extrabold text-blue-600">
+    <main className="flex min-h-[70vh] items-center justify-center bg-[var(--background)] px-4 py-12">
+      <div className="card w-full max-w-lg p-8 text-center sm:p-10">
+        <p className="text-6xl font-extrabold tracking-tight text-[var(--primary)] sm:text-7xl">
           404
-        </h1>
+        </p>
+        <div className="mx-auto mt-4 flex h-14 w-14 items-center justify-center rounded-full bg-[var(--secondary)] text-[var(--primary)]">
+          <SearchX size={26} />
+        </div>
 
-        <h2 className="mb-4 text-2xl font-bold text-gray-800">
-          Page Not Found
-        </h2>
-
-        <p className="mb-8 text-gray-500">
-          Sorry, the page you are looking for does not exist or may have been moved.
+        <h1 className="section-title mt-5 text-2xl">Page Not Found</h1>
+        <p className="mx-auto mt-3 max-w-sm text-sm leading-7 text-[var(--muted)]">
+          Sorry, the page you are looking for does not exist or may have been
+          moved.
         </p>
 
-        <Link
-          href="/"
-          className="inline-block rounded-lg bg-blue-600 px-6 py-3 font-medium text-white transition hover:bg-blue-700"
-        >
-          Back to Home
-        </Link>
+        <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
+          <Link href="/" className="btn-primary h-11 justify-center px-5">
+            <Home size={16} />
+            Back to Home
+          </Link>
+          <Link
+            href="/tuitions"
+            className="btn-secondary h-11 justify-center px-5"
+          >
+            Browse Tuitions
+            <ArrowRight size={16} />
+          </Link>
+        </div>
       </div>
-    </div>
+    </main>
   );
 }
