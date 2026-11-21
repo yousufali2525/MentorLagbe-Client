@@ -1,294 +1,237 @@
-
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { useToast } from "@/components/ToastProvider";
-
-const API_URL =
-  process.env.NODE_ENV === "development" ? "http://localhost:5000" : "";
+import Link from "next/link";
+import {
+  ArrowRight,
+  BookOpen,
+  CheckCircle2,
+  Clock3,
+  CreditCard,
+  FileText,
+  LayoutDashboard,
+  RefreshCw,
+  ShieldCheck,
+  Users,
+  GraduationCap,
+} from "lucide-react";
+import { useAuth } from "@/components/AuthProvider";
+import { toast } from "@/components/ToastProvider";
+import { apiFetch } from "@/lib/api";
 
 type Stats = {
-  totalUsers: number;
-  totalStudents: number;
-  totalTutors: number;
-  totalAdmins: number;
-  totalTuitions: number;
-  pendingTuitions: number;
-  approvedTuitions: number;
-  rejectedTuitions: number;
-  totalApplications: number;
-  totalPayments: number;
-  paidPayments: number;
-  totalRevenue: number;
+  totalUsers?: number;
+  totalStudents?: number;
+  totalTutors?: number;
+  totalAdmins?: number;
+  totalTuitions?: number;
+  pendingTuitions?: number;
+  approvedTuitions?: number;
+  rejectedTuitions?: number;
+  totalApplications?: number;
+  totalPayments?: number;
+  paidPayments?: number;
+  totalRevenue?: number;
 };
-
-const initialStats: Stats = {
-  totalUsers: 0,
-  totalStudents: 0,
-  totalTutors: 0,
-  totalAdmins: 0,
-  totalTuitions: 0,
-  pendingTuitions: 0,
-  approvedTuitions: 0,
-  rejectedTuitions: 0,
-  totalApplications: 0,
-  totalPayments: 0,
-  paidPayments: 0,
-  totalRevenue: 0,
-};
-
-const statCards = [
-  { title: "Total Users", key: "totalUsers", icon: "ðŸ‘¥" },
-  { title: "Students", key: "totalStudents", icon: "ðŸŽ“" },
-  { title: "Tutors", key: "totalTutors", icon: "ðŸ‘¨â€ðŸ«" },
-  { title: "Admins", key: "totalAdmins", icon: "ðŸ›¡ï¸" },
-  { title: "Total Tuitions", key: "totalTuitions", icon: "ðŸ“š" },
-  { title: "Pending Tuitions", key: "pendingTuitions", icon: "â³" },
-  { title: "Approved Tuitions", key: "approvedTuitions", icon: "âœ…" },
-  { title: "Rejected Tuitions", key: "rejectedTuitions", icon: "âŒ" },
-  { title: "Total Applications", key: "totalApplications", icon: "ðŸ“" },
-  { title: "Total Payments", key: "totalPayments", icon: "ðŸ’³" },
-  { title: "Paid Payments", key: "paidPayments", icon: "ðŸ’°" },
-] as const;
 
 const quickActions = [
   {
     title: "Manage Users",
-    description: "View, search and manage platform users.",
+    description: "Search accounts and manage status or roles.",
     href: "/dashboard/admin/users",
-    icon: "ðŸ‘¥",
+    icon: Users,
   },
   {
-    title: "Manage Tuitions",
-    description: "Review and approve tuition requests.",
+    title: "Review Tuitions",
+    description: "Approve or reject pending tuition requests.",
     href: "/dashboard/admin/tuitions",
-    icon: "ðŸ“š",
+    icon: BookOpen,
   },
   {
     title: "Transactions",
-    description: "View payment records and transactions.",
+    description: "Inspect Stripe payment records.",
     href: "/dashboard/admin/transactions",
-    icon: "ðŸ’³",
+    icon: CreditCard,
   },
 ];
 
-export default function AdminDashboard() {
-  const router = useRouter();
-  const { showToast } = useToast();
+function formatUsd(amount?: number) {
+  return `US$${Number(amount || 0).toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+}
 
-  const [stats, setStats] = useState<Stats>(initialStats);
-  const [adminName, setAdminName] = useState("Admin");
+export default function AdminDashboardPage() {
+  const { user, refreshUser } = useAuth();
+  const [stats, setStats] = useState<Stats>({});
   const [loading, setLoading] = useState(true);
 
-  const fetchDashboard = useCallback(async () => {
-    const token = localStorage.getItem("mentorlagbe-token");
-
-    if (!token) {
-      router.replace("/sign-in");
-      return;
-    }
-
+  const loadStats = useCallback(async (withToast = false) => {
     setLoading(true);
-
     try {
-      const profileResponse = await fetch(`${API_URL}/api/users/me`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      const profileData = await profileResponse.json();
-
-      if (!profileResponse.ok || !profileData.user) {
-        localStorage.removeItem("mentorlagbe-token");
-        localStorage.removeItem("mentorlagbe-user");
-        router.replace("/sign-in");
-        return;
-      }
-
-      const user = profileData.user;
-
-      if (user.role !== "admin") {
-        if (user.role === "student") {
-          router.replace("/dashboard");
-        } else if (user.role === "tutor") {
-          router.replace("/dashboard/tutor");
-        } else {
-          router.replace("/sign-in");
-        }
-        return;
-      }
-
-      setAdminName(user.name || "Admin");
-
-      const statsResponse = await fetch(`${API_URL}/api/admin/stats`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      const statsData = await statsResponse.json();
-
-      if (!statsResponse.ok || !statsData.success) {
-        throw new Error(
-          statsData.message || "Failed to load dashboard statistics"
-        );
-      }
-
-      setStats({
-        ...initialStats,
-        ...statsData.stats,
-      });
+      const result = await apiFetch<{ stats?: Stats }>("/api/admin/stats");
+      setStats(result.stats || {});
+      if (withToast) toast.success("Dashboard statistics refreshed.");
     } catch (err) {
-      showToast(
+      toast.error(
         err instanceof Error
           ? err.message
-          : "Something went wrong while loading dashboard",
-        "error"
+          : "Unable to load dashboard statistics."
       );
     } finally {
       setLoading(false);
     }
-  }, [router, showToast]);
+  }, []);
 
   useEffect(() => {
-    fetchDashboard();
-  }, [fetchDashboard]);
+    loadStats();
+    refreshUser().catch(() => undefined);
+  }, [loadStats, refreshUser]);
 
-  const formatMoney = (amount: number) =>
-    new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-      maximumFractionDigits: 2,
-    }).format(Number(amount || 0));
+  const cards = [
+    {
+      title: "Total Users",
+      value: stats.totalUsers,
+      icon: Users,
+      hint: `${stats.totalStudents || 0} students · ${stats.totalTutors || 0} tutors`,
+    },
+    {
+      title: "Total Tuitions",
+      value: stats.totalTuitions,
+      icon: BookOpen,
+      hint: `${stats.approvedTuitions || 0} approved`,
+    },
+    {
+      title: "Pending Review",
+      value: stats.pendingTuitions,
+      icon: Clock3,
+      hint: "tuitions waiting for approval",
+    },
+    {
+      title: "Applications",
+      value: stats.totalApplications,
+      icon: FileText,
+      hint: "submitted by students",
+    },
+    {
+      title: "Paid Payments",
+      value: stats.paidPayments,
+      icon: CheckCircle2,
+      hint: `of ${stats.totalPayments || 0} transactions`,
+    },
+    {
+      title: "Total Revenue",
+      value: formatUsd(stats.totalRevenue),
+      icon: CreditCard,
+      hint: "Stripe payments in USD",
+    },
+  ];
 
   return (
-    <main className="min-h-screen bg-slate-50 p-5 md:p-8">
-      <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
+    <div className="mx-auto w-full max-w-[1600px]">
+      <div className="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
         <div>
-          <p className="text-sm font-medium text-teal-600">
+          <p className="text-sm font-bold uppercase tracking-[0.16em] text-[var(--primary)]">
             Administration
           </p>
-          <h2 className="mt-1 text-2xl font-bold text-slate-900 md:text-3xl">
-            Welcome, {adminName}
-          </h2>
-          <p className="mt-2 text-slate-500">
-            Monitor and manage your MentorLagbe platform.
+          <h1 className="section-title mt-2">
+            Welcome, {user?.name?.split(" ")[0] || "Admin"}!
+          </h1>
+          <p className="mt-2 text-sm text-[var(--muted)]">
+            Monitor and manage the MentorLagbe platform.
           </p>
         </div>
 
         <button
-          onClick={fetchDashboard}
+          type="button"
+          onClick={() => loadStats(true)}
           disabled={loading}
-          className="rounded-lg bg-teal-600 px-5 py-3 font-medium text-white transition hover:bg-teal-700 disabled:opacity-50"
+          className="btn-secondary self-start sm:self-auto"
         >
-          {loading ? "Loading..." : "â†» Refresh"}
+          <RefreshCw size={15} className={loading ? "animate-spin" : ""} />
+          Refresh
         </button>
       </div>
 
-      <section className="mb-8 grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
-        <div className="rounded-xl bg-gradient-to-r from-teal-600 to-teal-500 p-6 text-white shadow-sm sm:col-span-2">
-          <p className="text-sm text-teal-100">
-            Total Revenue
-          </p>
-          <h3 className="mt-3 text-3xl font-bold">
-            {loading ? "..." : formatMoney(stats.totalRevenue)}
-          </h3>
-          <p className="mt-2 text-sm text-teal-100">
-            Revenue from paid payments (USD)
+      <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+        {cards.map((card) => {
+          const Icon = card.icon;
+          return (
+            <div key={card.title} className="card p-6">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-sm font-semibold text-[var(--muted)]">
+                  {card.title}
+                </p>
+                <div className="rounded-xl bg-[var(--secondary)] p-3 text-[var(--primary)]">
+                  <Icon size={21} />
+                </div>
+              </div>
+              <p className="mt-6 text-3xl font-extrabold">
+                {loading ? "…" : card.value ?? 0}
+              </p>
+              <p className="mt-2 text-xs text-[var(--muted)]">{card.hint}</p>
+            </div>
+          );
+        })}
+      </div>
+
+      <section className="mt-8">
+        <div className="mb-5">
+          <h2 className="text-lg font-extrabold">Quick Actions</h2>
+          <p className="mt-1 text-sm text-[var(--muted)]">
+            Jump into the most common admin tasks.
           </p>
         </div>
 
+        <div className="grid gap-5 md:grid-cols-3">
+          {quickActions.map((action) => {
+            const Icon = action.icon;
+            return (
+              <Link key={action.href} href={action.href} className="card group p-6">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--secondary)] text-[var(--primary)]">
+                  <Icon size={23} />
+                </div>
+                <h3 className="mt-5 font-bold transition group-hover:text-[var(--primary)]">
+                  {action.title}
+                </h3>
+                <p className="mt-2 text-sm leading-6 text-[var(--muted)]">
+                  {action.description}
+                </p>
+                <span className="text-link mt-5">
+                  Open <ArrowRight size={15} />
+                </span>
+              </Link>
+            );
+          })}
+        </div>
+      </section>
+
+      <section className="card mt-8 grid gap-5 p-6 sm:grid-cols-2 lg:grid-cols-4 sm:p-7">
         {[
           {
-            title: "Total Users",
-            value: stats.totalUsers,
-            icon: "ðŸ‘¥",
+            label: "Students",
+            value: stats.totalStudents,
+            icon: GraduationCap,
           },
-          {
-            title: "Total Tuitions",
-            value: stats.totalTuitions,
-            icon: "ðŸ“š",
-          },
-        ].map((item) => (
-          <div
-            key={item.title}
-            className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm"
-          >
-            <div className="flex items-center justify-between">
-              <p className="text-sm text-slate-500">
-                {item.title}
-              </p>
-              <span className="text-2xl">{item.icon}</span>
-            </div>
-            <h3 className="mt-4 text-3xl font-bold text-slate-900">
-              {loading
-                ? "..."
-                : item.value.toLocaleString("en-US")}
-            </h3>
-          </div>
-        ))}
-      </section>
-
-      <section className="mb-8">
-        <div className="mb-5">
-          <h3 className="text-xl font-bold text-slate-900">
-            Platform Statistics
-          </h3>
-          <p className="mt-1 text-sm text-slate-500">
-            Live statistics from the database
-          </p>
-        </div>
-
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {statCards.map((item) => (
-            <div
-              key={item.title}
-              className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-md"
-            >
-              <div className="flex items-center justify-between">
-                <p className="text-sm text-slate-500">
-                  {item.title}
-                </p>
-                <span className="text-2xl">{item.icon}</span>
+          { label: "Tutors", value: stats.totalTutors, icon: ShieldCheck },
+          { label: "Admins", value: stats.totalAdmins, icon: LayoutDashboard },
+          { label: "Rejected", value: stats.rejectedTuitions, icon: BookOpen },
+        ].map((item) => {
+          const Icon = item.icon;
+          return (
+            <div key={item.label} className="flex items-center gap-3">
+              <div className="rounded-lg bg-[var(--secondary)] p-2.5 text-[var(--primary)]">
+                <Icon size={18} />
               </div>
-              <h4 className="mt-4 text-3xl font-bold text-slate-900">
-                {loading
-                  ? "..."
-                  : stats[item.key].toLocaleString("en-US")}
-              </h4>
+              <div>
+                <p className="text-xs text-[var(--muted)]">{item.label}</p>
+                <p className="text-lg font-extrabold">{item.value ?? 0}</p>
+              </div>
             </div>
-          ))}
-        </div>
+          );
+        })}
       </section>
-
-      <section>
-        <h3 className="mb-5 text-xl font-bold text-slate-900">
-          Quick Actions
-        </h3>
-
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {quickActions.map((item) => (
-            <button
-              key={item.href}
-              onClick={() => router.push(item.href)}
-              className="rounded-xl border border-slate-200 bg-white p-6 text-left shadow-sm transition hover:border-teal-400 hover:shadow-md"
-            >
-              <span className="text-3xl">{item.icon}</span>
-              <h4 className="mt-4 font-bold text-slate-900">
-                {item.title}
-              </h4>
-              <p className="mt-2 text-sm text-slate-500">
-                {item.description}
-              </p>
-              <p className="mt-4 text-sm font-semibold text-teal-600">
-                Open page â†’
-              </p>
-            </button>
-          ))}
-        </div>
-      </section>
-    </main>
+    </div>
   );
 }

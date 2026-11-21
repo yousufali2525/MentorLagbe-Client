@@ -1,361 +1,294 @@
-
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { useToast } from "@/components/ToastProvider";
-
-const API_URL = process.env.NODE_ENV === "development" ? "http://localhost:5000" : "";
-const LIMIT = 10;
+import { useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import {
+  ArrowLeft,
+  ArrowRight,
+  CreditCard,
+  RefreshCw,
+  Search,
+} from "lucide-react";
+import { toast } from "@/components/ToastProvider";
+import { apiFetch } from "@/lib/api";
 
 type Payment = {
-  _id: string;
-  stripeSessionId: string;
-  userId: string;
-  email: string;
-  role: string;
-  plan: string;
-  amount: number;
-  currency: string;
-  paymentStatus: string;
-  createdAt: string;
+  _id?: string;
+  id?: string;
+  stripeSessionId?: string;
+  userId?: string;
+  email?: string;
+  role?: string;
+  plan?: string;
+  amount?: number;
+  currency?: string;
+  paymentStatus?: string;
+  createdAt?: string;
 };
 
-type Pagination = {
-  totalPayments: number;
-  currentPage: number;
-  totalPages: number;
+type PaymentsResponse = {
+  success?: boolean;
+  payments?: Payment[];
+  pagination?: {
+    totalPayments?: number;
+    currentPage?: number;
+    totalPages?: number;
+  };
 };
+
+const PAGE_SIZE = 10;
+
+function formatUsd(amount?: number, currency?: string) {
+  const code = (currency || "usd").toUpperCase();
+  const value = Number(amount || 0).toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+  return code === "USD" ? `US$${value}` : `${value} ${code}`;
+}
+
+function statusStyle(status?: string) {
+  switch (status?.toLowerCase()) {
+    case "paid":
+      return "bg-emerald-50 text-emerald-700";
+    case "failed":
+      return "bg-red-50 text-red-700";
+    default:
+      return "bg-amber-50 text-amber-700";
+  }
+}
 
 export default function AdminTransactionsPage() {
-  const router = useRouter();
-  const { showToast } = useToast();
-
   const [payments, setPayments] = useState<Payment[]>([]);
-  const [pagination, setPagination] = useState<Pagination>({
-    totalPayments: 0,
-    currentPage: 1,
-    totalPages: 1,
-  });
-  const [page, setPage] = useState(1);
-  const [loading, setLoading] = useState(true);
+  const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
+  const [status, setStatus] = useState("all");
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalPayments, setTotalPayments] = useState(0);
+  const [loading, setLoading] = useState(true);
 
-  const fetchPayments = useCallback(async () => {
-    const token = localStorage.getItem("mentorlagbe-token");
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setSearch(searchInput.trim());
+      setPage(1);
+    }, 350);
+    return () => window.clearTimeout(timer);
+  }, [searchInput]);
 
-    if (!token) {
-      router.replace("/sign-in");
-      return;
-    }
-
+  const loadPayments = useCallback(async () => {
     setLoading(true);
-
     try {
-      const profileResponse = await fetch(`${API_URL}/api/users/me`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+      const params = new URLSearchParams({
+        page: String(page),
+        limit: String(PAGE_SIZE),
       });
-
-      const profileData = await profileResponse.json();
-
-      if (!profileResponse.ok || !profileData.user) {
-        localStorage.removeItem("mentorlagbe-token");
-        localStorage.removeItem("mentorlagbe-user");
-        router.replace("/sign-in");
-        return;
-      }
-
-      if (profileData.user.role !== "admin") {
-        if (profileData.user.role === "student") {
-          router.replace("/dashboard");
-        } else if (profileData.user.role === "tutor") {
-          router.replace("/dashboard/tutor");
-        } else {
-          router.replace("/sign-in");
-        }
-        return;
-      }
-
-      const response = await fetch(
-        `${API_URL}/api/admin/payments?page=${page}&limit=${LIMIT}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+      const result = await apiFetch<PaymentsResponse>(
+        `/api/admin/payments?${params.toString()}`
       );
-
-      const data = await response.json();
-
-      if (!response.ok || !data.success) {
-        throw new Error(data.message || "Failed to load transactions");
-      }
-
-      setPayments(data.payments || []);
-
-      setPagination(
-        data.pagination || {
-          totalPayments: data.payments?.length || 0,
-          currentPage: page,
-          totalPages: 1,
-        }
-      );
+      setPayments(Array.isArray(result.payments) ? result.payments : []);
+      setTotalPages(Math.max(1, result.pagination?.totalPages || 1));
+      setTotalPayments(result.pagination?.totalPayments || 0);
     } catch (err) {
-      showToast(
-        err instanceof Error
-          ? err.message
-          : "Failed to load transactions",
-        "error"
+      toast.error(
+        err instanceof Error ? err.message : "Unable to load transactions."
       );
+      setPayments([]);
     } finally {
       setLoading(false);
     }
-  }, [router, page, showToast]);
+  }, [page]);
 
   useEffect(() => {
-    fetchPayments();
-  }, [fetchPayments]);
+    loadPayments();
+  }, [loadPayments]);
 
-  const formatAmount = (amount: number, currency: string) => {
-    try {
-      return new Intl.NumberFormat("en-US", {
-        style: "currency",
-        currency: (currency || "usd").toUpperCase(),
-      }).format(Number(amount || 0));
-    } catch {
-      return `${Number(amount || 0).toFixed(2)} ${currency || "USD"}`;
-    }
-  };
-
-  const filteredPayments = payments.filter((payment) => {
-    const searchValue = search.toLowerCase();
-
-    const matchesSearch =
-      payment.email?.toLowerCase().includes(searchValue) ||
-      payment.stripeSessionId?.toLowerCase().includes(searchValue) ||
-      payment.userId?.toLowerCase().includes(searchValue) ||
-      payment.plan?.toLowerCase().includes(searchValue);
-
-    const matchesStatus =
-      statusFilter === "all" ||
-      payment.paymentStatus?.toLowerCase() === statusFilter;
-
-    return matchesSearch && matchesStatus;
-  });
-
-  const totalPages = Math.max(1, pagination.totalPages);
+  const filtered = useMemo(() => {
+    const value = search.toLowerCase();
+    return payments.filter((payment) => {
+      const matchesSearch =
+        !value ||
+        payment.email?.toLowerCase().includes(value) ||
+        payment.stripeSessionId?.toLowerCase().includes(value) ||
+        payment.userId?.toLowerCase().includes(value) ||
+        payment.plan?.toLowerCase().includes(value);
+      const matchesStatus =
+        status === "all" || payment.paymentStatus?.toLowerCase() === status;
+      return matchesSearch && matchesStatus;
+    });
+  }, [payments, search, status]);
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <main className="min-w-0 p-5 md:p-8">
-        <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <p className="text-sm font-medium text-teal-600">
-              Administration
-            </p>
-            <h2 className="mt-1 text-2xl font-bold text-slate-900 md:text-3xl">
-              Transactions
-            </h2>
-            <p className="mt-2 text-slate-500">
-              Monitor platform payments and Stripe transactions.
-            </p>
-          </div>
+    <div className="mx-auto w-full max-w-[1600px]">
+      <Link href="/dashboard/admin" className="text-link">
+        <ArrowLeft size={18} />
+        Back to Dashboard
+      </Link>
 
-          <button
-            onClick={fetchPayments}
-            disabled={loading}
-            className="rounded-lg bg-teal-600 px-5 py-3 font-medium text-white transition hover:bg-teal-700 disabled:opacity-50"
-          >
-            {loading ? "Loading..." : "â†» Refresh"}
-          </button>
+      <div className="mb-6 mt-5 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+        <div>
+          <h1 className="section-title">Transactions</h1>
+          <p className="mt-2 text-sm text-[var(--muted)]">
+            Monitor Stripe payment records and plan upgrades.
+          </p>
         </div>
+        <button
+          type="button"
+          onClick={() => {
+            loadPayments();
+            toast.info("Refreshing transactions...");
+          }}
+          disabled={loading}
+          className="btn-secondary self-start sm:self-auto"
+        >
+          <RefreshCw size={15} className={loading ? "animate-spin" : ""} />
+          Refresh
+        </button>
+      </div>
 
-        <section className="mb-6 grid gap-4 sm:grid-cols-2">
-          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-            <p className="text-sm text-slate-500">
-              Total Transactions
-            </p>
-            <h3 className="mt-2 text-3xl font-bold text-slate-900">
-              {loading
-                ? "..."
-                : pagination.totalPayments.toLocaleString("en-US")}
-            </h3>
+      <div className="mb-6 grid gap-4 sm:grid-cols-2">
+        <div className="card p-5">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-sm text-[var(--muted)]">Total Transactions</p>
+            <CreditCard size={20} className="text-[var(--primary)]" />
           </div>
-
-          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-            <p className="text-sm text-slate-500">
-              Transactions on This Page
-            </p>
-            <h3 className="mt-2 text-3xl font-bold text-teal-600">
-              {loading ? "..." : payments.length}
-            </h3>
+          <p className="mt-3 text-3xl font-extrabold">{totalPayments}</p>
+        </div>
+        <div className="card p-5">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-sm text-[var(--muted)]">On This Page</p>
+            <Search size={20} className="text-[var(--primary)]" />
           </div>
-        </section>
+          <p className="mt-3 text-3xl font-extrabold">{payments.length}</p>
+        </div>
+      </div>
 
-        <section className="mb-6 flex flex-col gap-3 md:flex-row">
-          <input
-            type="text"
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder="Search by email, session ID, user ID or plan..."
-            className="min-w-0 flex-1 rounded-lg border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
+      <p className="mb-4 text-xs text-[var(--muted)]">
+        Payments are processed in USD by Stripe. Tuition fees displayed
+        elsewhere on the site use ৳. Search and status filtering are local
+        because the transactions endpoint has no query parameters.
+      </p>
+
+      <div className="card mb-6 grid gap-3 p-5 md:grid-cols-[1fr_200px]">
+        <div className="relative">
+          <Search
+            size={17}
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted)]"
           />
+          <input
+            value={searchInput}
+            onChange={(event) => setSearchInput(event.target.value)}
+            placeholder="Search email, session, user or plan..."
+            className="field-input pl-10"
+          />
+        </div>
+        <select
+          value={status}
+          onChange={(event) => {
+            setStatus(event.target.value);
+            setPage(1);
+          }}
+          className="field-input"
+        >
+          <option value="all">All Statuses</option>
+          <option value="paid">Paid</option>
+          <option value="pending">Pending</option>
+          <option value="failed">Failed</option>
+        </select>
+      </div>
 
-          <select
-            value={statusFilter}
-            onChange={(event) => setStatusFilter(event.target.value)}
-            className="rounded-lg border border-slate-300 bg-white px-4 py-3 text-slate-800 outline-none focus:border-teal-500"
-          >
-            <option value="all">All Statuses</option>
-            <option value="paid">Paid</option>
-            <option value="pending">Pending</option>
-            <option value="failed">Failed</option>
-          </select>
-        </section>
+      {loading ? (
+        <div className="space-y-3">
+          {Array.from({ length: 5 }).map((_, index) => (
+            <div key={index} className="skeleton h-20 rounded-xl" />
+          ))}
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="empty-state">
+          <CreditCard className="mx-auto text-[var(--primary)]" size={30} />
+          <h2 className="mt-4 text-lg font-bold">No transactions found</h2>
+          <p className="mx-auto mt-2 max-w-md text-sm text-[var(--muted)]">
+            {payments.length === 0
+              ? "Payment records will appear here when users upgrade their plans."
+              : "Try a different search or status filter."}
+          </p>
+        </div>
+      ) : (
+        <div className="table-wrap">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>Transaction</th>
+                <th>User</th>
+                <th>Plan</th>
+                <th>Amount</th>
+                <th>Status</th>
+                <th>Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((payment, index) => (
+                <tr key={payment._id || payment.id || index}>
+                  <td>
+                    <p className="font-bold text-[var(--foreground)]">
+                      {payment.stripeSessionId || payment._id || "N/A"}
+                    </p>
+                    <p className="mt-1 text-xs">User ID: {payment.userId || "N/A"}</p>
+                  </td>
+                  <td>
+                    <p className="font-semibold text-[var(--foreground)]">
+                      {payment.email || "Not available"}
+                    </p>
+                    <p className="mt-1 text-xs capitalize">{payment.role || "user"}</p>
+                  </td>
+                  <td className="capitalize">{payment.plan || "N/A"}</td>
+                  <td className="font-bold text-[var(--foreground)]">
+                    {formatUsd(payment.amount, payment.currency)}
+                  </td>
+                  <td>
+                    <span className={`badge capitalize ${statusStyle(payment.paymentStatus)}`}>
+                      {payment.paymentStatus || "unknown"}
+                    </span>
+                  </td>
+                  <td>
+                    {payment.createdAt
+                      ? new Date(payment.createdAt).toLocaleString("en-BD")
+                      : "Not available"}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
-        <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-          <div className="border-b border-slate-200 px-5 py-4">
-            <h3 className="font-bold text-slate-900">
-              Payment History
-            </h3>
+      {!loading && totalPayments > 0 && (
+        <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
+          <p className="text-sm text-[var(--muted)]">
+            Page {page} of {totalPages}
+          </p>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setPage((value) => Math.max(1, value - 1))}
+              disabled={page <= 1}
+              className="btn-secondary"
+            >
+              <ArrowLeft size={16} />
+              Previous
+            </button>
+            <button
+              type="button"
+              onClick={() => setPage((value) => Math.min(totalPages, value + 1))}
+              disabled={page >= totalPages}
+              className="btn-secondary"
+            >
+              Next
+              <ArrowRight size={16} />
+            </button>
           </div>
-
-          {loading ? (
-            <div className="p-10 text-center text-slate-500">
-              Loading transactions...
-            </div>
-          ) : filteredPayments.length === 0 ? (
-            <div className="p-10 text-center">
-              <div className="mb-3 text-4xl">ðŸ’³</div>
-              <h4 className="font-semibold text-slate-800">
-                No transactions found
-              </h4>
-              <p className="mt-2 text-sm text-slate-500">
-                Payment records will appear here when available.
-              </p>
-            </div>
-          ) : (
-            <>
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[850px] text-left text-sm">
-                  <thead className="bg-slate-50 text-slate-500">
-                    <tr>
-                      <th className="px-5 py-4 font-semibold">
-                        Transaction
-                      </th>
-                      <th className="px-5 py-4 font-semibold">
-                        User
-                      </th>
-                      <th className="px-5 py-4 font-semibold">
-                        Plan
-                      </th>
-                      <th className="px-5 py-4 font-semibold">
-                        Amount
-                      </th>
-                      <th className="px-5 py-4 font-semibold">
-                        Status
-                      </th>
-                      <th className="px-5 py-4 font-semibold">
-                        Date
-                      </th>
-                    </tr>
-                  </thead>
-
-                  <tbody className="divide-y divide-slate-100">
-                    {filteredPayments.map((payment) => (
-                      <tr
-                        key={payment._id}
-                        className="transition hover:bg-slate-50"
-                      >
-                        <td className="px-5 py-4">
-                          <p className="font-medium text-slate-800">
-                            {payment.stripeSessionId || payment._id}
-                          </p>
-                          <p className="mt-1 text-xs text-slate-400">
-                            User ID: {payment.userId}
-                          </p>
-                        </td>
-
-                        <td className="px-5 py-4">
-                          <p className="font-medium text-slate-800">
-                            {payment.email || "Not available"}
-                          </p>
-                          <p className="mt-1 text-xs capitalize text-slate-500">
-                            {payment.role || "User"}
-                          </p>
-                        </td>
-
-                        <td className="px-5 py-4">
-                          <span className="rounded-full bg-teal-50 px-3 py-1 text-xs font-semibold capitalize text-teal-700">
-                            {payment.plan || "N/A"}
-                          </span>
-                        </td>
-
-                        <td className="px-5 py-4 font-semibold text-slate-800">
-                          {formatAmount(payment.amount, payment.currency)}
-                        </td>
-
-                        <td className="px-5 py-4">
-                          <span
-                            className={`rounded-full px-3 py-1 text-xs font-semibold capitalize ${
-                              payment.paymentStatus === "paid"
-                                ? "bg-green-100 text-green-700"
-                                : payment.paymentStatus === "failed"
-                                  ? "bg-red-100 text-red-700"
-                                  : "bg-amber-100 text-amber-700"
-                            }`}
-                          >
-                            {payment.paymentStatus || "Unknown"}
-                          </span>
-                        </td>
-
-                        <td className="px-5 py-4 text-slate-600">
-                          {payment.createdAt
-                            ? new Date(payment.createdAt).toLocaleString("en-BD")
-                            : "Not available"}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 px-5 py-4">
-                <p className="text-sm text-slate-500">
-                  Page {pagination.currentPage} of {totalPages}
-                </p>
-
-                <div className="flex gap-2">
-                  <button
-                    onClick={() =>
-                      setPage((current) => Math.max(1, current - 1))
-                    }
-                    disabled={page <= 1 || loading}
-                    className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
-                  >
-                    Previous
-                  </button>
-
-                  <button
-                    onClick={() =>
-                      setPage((current) =>
-                        Math.min(totalPages, current + 1)
-                      )
-                    }
-                    disabled={page >= totalPages || loading}
-                    className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
-                  >
-                    Next
-                  </button>
-                </div>
-              </div>
-            </>
-          )}
-        </section>
-      </main>
+        </div>
+      )}
     </div>
   );
 }

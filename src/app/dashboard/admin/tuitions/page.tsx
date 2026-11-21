@@ -1,440 +1,334 @@
-
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { useToast } from "@/components/ToastProvider";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import {
+  ArrowLeft,
+  BookOpen,
+  CheckCircle2,
+  Clock3,
+  MapPin,
+  RefreshCw,
+  Search,
+  X,
+  XCircle,
+} from "lucide-react";
+import { toast } from "@/components/ToastProvider";
+import { apiFetch } from "@/lib/api";
+import { formatFee, tuitionFee, type Tuition } from "@/lib/tuitions";
 
-const API_URL = process.env.NODE_ENV === "development" ? "http://localhost:5000" : "";
-
-type Tuition = {
-  _id: string;
-  title: string;
-  subject: string;
-  description: string;
-  location: string;
-  salary: number;
-  category?: string;
-  banner?: string;
-  tutorName?: string;
-  tutorEmail?: string;
-  approvalStatus: string;
-  createdAt?: string;
+type PendingResponse = {
+  success?: boolean;
+  total?: number;
+  tuitions?: Tuition[];
 };
 
 export default function AdminTuitionsPage() {
-  const router = useRouter();
-  const { showToast } = useToast();
-
   const [tuitions, setTuitions] = useState<Tuition[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [processingId, setProcessingId] = useState("");
-  const [selectedTuition, setSelectedTuition] = useState<Tuition | null>(null);
   const [search, setSearch] = useState("");
+  const [selected, setSelected] = useState<Tuition | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [processingId, setProcessingId] = useState<string | null>(null);
 
-  const fetchTuitions = useCallback(async () => {
-    const token = localStorage.getItem("mentorlagbe-token");
-
-    if (!token) {
-      router.replace("/sign-in");
-      return;
-    }
-
+  const loadPending = useCallback(async (showToast = false) => {
     setLoading(true);
-
     try {
-      const profileResponse = await fetch(`${API_URL}/api/users/me`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      const profileData = await profileResponse.json();
-
-      if (!profileResponse.ok || !profileData.user) {
-        localStorage.removeItem("mentorlagbe-token");
-        localStorage.removeItem("mentorlagbe-user");
-        router.replace("/sign-in");
-        return;
-      }
-
-      if (profileData.user.role !== "admin") {
-        if (profileData.user.role === "student") {
-          router.replace("/dashboard");
-        } else if (profileData.user.role === "tutor") {
-          router.replace("/dashboard/tutor");
-        } else {
-          router.replace("/sign-in");
-        }
-        return;
-      }
-
-      const response = await fetch(
-        `${API_URL}/api/admin/tuitions/pending`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+      const result = await apiFetch<PendingResponse>(
+        "/api/admin/tuitions/pending"
       );
-
-      const data = await response.json();
-
-      if (!response.ok || !data.success) {
-        throw new Error(data.message || "Failed to load tuition requests");
-      }
-
-      setTuitions(data.tuitions || []);
+      setTuitions(Array.isArray(result.tuitions) ? result.tuitions : []);
+      if (showToast) toast.success("Pending tuitions refreshed.");
     } catch (err) {
-      showToast(
-        err instanceof Error ? err.message : "Failed to load tuitions",
-        "error"
+      toast.error(
+        err instanceof Error ? err.message : "Unable to load pending tuitions."
       );
+      setTuitions([]);
     } finally {
       setLoading(false);
     }
-  }, [router, showToast]);
+  }, []);
 
   useEffect(() => {
-    fetchTuitions();
-  }, [fetchTuitions]);
+    loadPending();
+  }, [loadPending]);
 
-  const updateStatus = async (
-    tuitionId: string,
-    status: "approved" | "rejected"
-  ) => {
-    const token = localStorage.getItem("mentorlagbe-token");
+  const filtered = useMemo(() => {
+    const value = search.trim().toLowerCase();
+    if (!value) return tuitions;
+    return tuitions.filter((tuition) =>
+      [
+        tuition.title,
+        tuition.subject,
+        tuition.location,
+        tuition.tutorName,
+        tuition.tutorEmail,
+      ]
+        .filter(Boolean)
+        .some((field) => field!.toLowerCase().includes(value))
+    );
+  }, [tuitions, search]);
 
-    if (!token) {
-      router.replace("/sign-in");
-      return;
-    }
+  async function updateStatus(tuition: Tuition, status: "approved" | "rejected") {
+    const id = tuition._id || tuition.id;
+    if (!id) return;
 
     const action = status === "approved" ? "approve" : "reject";
-
-    if (!window.confirm(`Are you sure you want to ${action} this tuition?`)) {
-      return;
-    }
-
-    setProcessingId(tuitionId);
+    if (!window.confirm(`Are you sure you want to ${action} this tuition?`)) return;
 
     try {
-      const response = await fetch(
-        `${API_URL}/api/tuitions/admin/${tuitionId}/status`,
+      setProcessingId(id);
+      const result = await apiFetch<{ message?: string }>(
+        `/api/tuitions/admin/${id}/status`,
         {
           method: "PATCH",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
           body: JSON.stringify({ status }),
         }
       );
-
-      const data = await response.json();
-
-      if (!response.ok || !data.success) {
-        throw new Error(data.message || "Failed to update tuition");
-      }
-
       setTuitions((previous) =>
-        previous.filter((tuition) => tuition._id !== tuitionId)
+        previous.filter((item) => (item._id || item.id) !== id)
       );
-
-      setSelectedTuition(null);
-
-      showToast(
-        data.message || `Tuition ${status} successfully`,
-        "success"
-      );
+      if (selected && (selected._id || selected.id) === id) setSelected(null);
+      toast.success(result.message || `Tuition ${status} successfully.`);
     } catch (err) {
-      showToast(
-        err instanceof Error ? err.message : "Something went wrong",
-        "error"
-      );
+      toast.error(err instanceof Error ? err.message : "Unable to update status.");
     } finally {
-      setProcessingId("");
+      setProcessingId(null);
     }
-  };
-
-  const filteredTuitions = tuitions.filter((tuition) => {
-    const value = search.toLowerCase();
-
-    return (
-      tuition.title?.toLowerCase().includes(value) ||
-      tuition.subject?.toLowerCase().includes(value) ||
-      tuition.location?.toLowerCase().includes(value) ||
-      tuition.tutorName?.toLowerCase().includes(value) ||
-      tuition.tutorEmail?.toLowerCase().includes(value)
-    );
-  });
+  }
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <main className="min-w-0 p-5 md:p-8">
-        <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <p className="text-sm font-medium text-teal-600">
-              Administration
-            </p>
-            <h2 className="mt-1 text-2xl font-bold text-slate-900 md:text-3xl">
-              Manage Tuitions
+    <div className="mx-auto w-full max-w-[1600px]">
+      <Link href="/dashboard/admin" className="text-link">
+        <ArrowLeft size={18} />
+        Back to Dashboard
+      </Link>
+
+      <div className="mb-6 mt-5 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+        <div>
+          <h1 className="section-title">Manage Tuitions</h1>
+          <p className="mt-2 text-sm text-[var(--muted)]">
+            Review pending tuition requests and approve or reject them.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => loadPending(true)}
+          disabled={loading}
+          className="btn-secondary self-start sm:self-auto"
+        >
+          <RefreshCw size={15} className={loading ? "animate-spin" : ""} />
+          Refresh
+        </button>
+      </div>
+
+      <div className="mb-6 grid gap-4 sm:grid-cols-2">
+        <div className="card p-5">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-sm text-[var(--muted)]">Pending Requests</p>
+            <Clock3 size={20} className="text-amber-600" />
+          </div>
+          <p className="mt-3 text-3xl font-extrabold">{tuitions.length}</p>
+        </div>
+        <div className="card p-5">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-sm text-[var(--muted)]">Filtered Results</p>
+            <Search size={20} className="text-[var(--primary)]" />
+          </div>
+          <p className="mt-3 text-3xl font-extrabold">{filtered.length}</p>
+        </div>
+      </div>
+
+      <p className="mb-4 text-xs text-[var(--muted)]">
+        A complete all-tuitions admin listing is not available in the current
+        API. Only pending requests are shown here.
+      </p>
+
+      <div className="card overflow-hidden">
+        <div className="border-b border-[var(--border)] p-5 sm:p-6">
+          <div className="relative max-w-xl">
+            <Search
+              size={17}
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted)]"
+            />
+            <input
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Search title, subject, location or tutor..."
+              className="field-input pl-10"
+            />
+          </div>
+        </div>
+
+        {loading ? (
+          <div className="space-y-3 p-5 sm:p-6">
+            {Array.from({ length: 4 }).map((_, index) => (
+              <div key={index} className="skeleton h-28 rounded-xl" />
+            ))}
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="empty-state m-5 sm:m-6">
+            <BookOpen className="mx-auto text-[var(--primary)]" size={30} />
+            <h2 className="mt-4 text-lg font-bold">
+              {tuitions.length === 0
+                ? "No pending tuitions"
+                : "No matching tuitions"}
             </h2>
-            <p className="mt-2 text-slate-500">
-              Review tuition requests and approve or reject them.
+            <p className="mx-auto mt-2 max-w-md text-sm text-[var(--muted)]">
+              {tuitions.length === 0
+                ? "New tuition requests will appear here when tutors submit them."
+                : "Try a different search term."}
             </p>
           </div>
-
-          <button
-            onClick={fetchTuitions}
-            disabled={loading}
-            className="rounded-lg bg-teal-600 px-5 py-3 font-medium text-white hover:bg-teal-700 disabled:opacity-50"
-          >
-            {loading ? "Loading..." : "â†» Refresh"}
-          </button>
-        </div>
-
-        <div className="mb-6 grid gap-4 sm:grid-cols-2">
-          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-            <p className="text-sm text-slate-500">
-              Pending Tuition Requests
-            </p>
-            <h3 className="mt-2 text-3xl font-bold text-amber-600">
-              {loading ? "..." : tuitions.length}
-            </h3>
-          </div>
-
-          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-            <p className="text-sm text-slate-500">
-              Filtered Results
-            </p>
-            <h3 className="mt-2 text-3xl font-bold text-teal-600">
-              {loading ? "..." : filteredTuitions.length}
-            </h3>
-          </div>
-        </div>
-
-        <div className="mb-6">
-          <input
-            type="text"
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder="Search by title, subject, location or tutor..."
-            className="w-full rounded-lg border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100"
-          />
-        </div>
-
-        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-          <div className="border-b border-slate-200 px-5 py-4">
-            <h3 className="font-bold text-slate-900">
-              Pending Tuition Requests
-            </h3>
-          </div>
-
-          {loading ? (
-            <div className="p-10 text-center text-slate-500">
-              Loading tuition requests...
-            </div>
-          ) : filteredTuitions.length === 0 ? (
-            <div className="p-10 text-center">
-              <div className="mb-3 text-4xl">ðŸ“š</div>
-              <h4 className="font-semibold text-slate-800">
-                No pending tuitions found
-              </h4>
-              <p className="mt-2 text-sm text-slate-500">
-                New tuition requests will appear here.
-              </p>
-            </div>
-          ) : (
-            <div className="divide-y divide-slate-100">
-              {filteredTuitions.map((tuition) => (
-                <div key={tuition._id} className="p-5">
-                  <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-center">
+        ) : (
+          <div className="divide-y divide-[var(--border)]">
+            {filtered.map((tuition, index) => {
+              const id = tuition._id || tuition.id;
+              return (
+                <div key={id || index} className="p-5 sm:p-6">
+                  <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-start">
                     <div className="min-w-0 flex-1">
-                      <div className="mb-2 flex flex-wrap items-center gap-2">
-                        <h4 className="text-lg font-bold text-slate-900">
-                          {tuition.title}
-                        </h4>
-                        <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-700">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h3 className="text-base font-bold">{tuition.title}</h3>
+                        <span className="badge bg-amber-50 text-amber-700">
+                          <Clock3 size={12} className="mr-1" />
                           Pending
                         </span>
                       </div>
-
-                      <div className="flex flex-wrap gap-x-5 gap-y-2 text-sm text-slate-500">
-                        <span>ðŸ“– {tuition.subject}</span>
-                        <span>ðŸ“ {tuition.location}</span>
-                        <span>
-                          ðŸ’° à§³
-                          {Number(tuition.salary).toLocaleString("en-BD")}
-                        </span>
-                      </div>
-
-                      <p className="mt-3 text-sm text-slate-600">
-                        Tutor: {tuition.tutorName || "Not provided"}
+                      <p className="mt-2 text-sm font-semibold text-[var(--primary)]">
+                        {tuition.subject} · {tuition.classLevel || "Class not set"}
                       </p>
-
-                      <p className="mt-1 text-sm text-slate-500">
-                        {tuition.tutorEmail || ""}
+                      <p className="mt-2 flex items-center gap-1.5 text-sm text-[var(--muted)]">
+                        <MapPin size={15} />
+                        {tuition.location}
                       </p>
-
-                      <p className="mt-2 text-xs text-slate-400">
+                      <p className="mt-2 text-sm text-[var(--muted)]">
+                        Tutor: {tuition.tutorName || "Not provided"} · {formatFee(tuitionFee(tuition))}
+                      </p>
+                      <p className="mt-1 text-xs text-[var(--muted)]">
                         Submitted:{" "}
                         {tuition.createdAt
-                          ? new Date(tuition.createdAt).toLocaleDateString(
-                              "en-BD"
-                            )
+                          ? new Date(tuition.createdAt).toLocaleDateString("en-BD")
                           : "Not available"}
                       </p>
                     </div>
 
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex shrink-0 flex-wrap gap-2 lg:flex-col">
                       <button
-                        onClick={() => setSelectedTuition(tuition)}
-                        className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                        type="button"
+                        onClick={() => setSelected(tuition)}
+                        className="btn-secondary flex-1 justify-center text-xs lg:flex-none"
                       >
                         View Details
                       </button>
-
                       <button
-                        onClick={() =>
-                          updateStatus(tuition._id, "approved")
-                        }
-                        disabled={processingId === tuition._id}
-                        className="rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50"
+                        type="button"
+                        onClick={() => updateStatus(tuition, "approved")}
+                        disabled={processingId !== null}
+                        className="btn-primary flex-1 justify-center text-xs lg:flex-none"
                       >
-                        {processingId === tuition._id
-                          ? "Processing..."
-                          : "Approve"}
+                        <CheckCircle2 size={14} />
+                        {processingId === id ? "Processing..." : "Approve"}
                       </button>
-
                       <button
-                        onClick={() =>
-                          updateStatus(tuition._id, "rejected")
-                        }
-                        disabled={processingId === tuition._id}
-                        className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
+                        type="button"
+                        onClick={() => updateStatus(tuition, "rejected")}
+                        disabled={processingId !== null}
+                        className="btn-danger flex-1 justify-center text-xs lg:flex-none"
                       >
+                        <XCircle size={14} />
                         Reject
                       </button>
                     </div>
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </main>
+              );
+            })}
+          </div>
+        )}
+      </div>
 
-      {selectedTuition && (
+      {selected && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-          onClick={() => setSelectedTuition(null)}
+          onClick={() => setSelected(null)}
         >
           <div
-            className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-xl bg-white p-6 shadow-xl"
+            className="card max-h-[90vh] w-full max-w-2xl overflow-y-auto p-6 sm:p-8"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="mb-5 flex items-center justify-between gap-3">
-              <h3 className="text-xl font-bold text-slate-900">
-                Tuition Details
-              </h3>
+              <h2 className="text-xl font-extrabold">Tuition Details</h2>
               <button
-                onClick={() => setSelectedTuition(null)}
-                className="rounded-lg px-3 py-1 text-xl text-slate-500 hover:bg-slate-100"
+                type="button"
+                onClick={() => setSelected(null)}
+                className="rounded-lg p-2 text-[var(--muted)] transition hover:bg-[var(--secondary)]"
+                aria-label="Close details"
               >
-                Ã—
+                <X size={20} />
               </button>
             </div>
 
-            {selectedTuition.banner && (
+            {selected.banner && (
               <img
-                src={selectedTuition.banner}
-                alt={selectedTuition.title}
-                className="mb-5 max-h-56 w-full rounded-lg object-cover"
+                src={selected.banner}
+                alt={selected.title || "Tuition"}
+                className="mb-5 max-h-56 w-full rounded-xl object-cover"
               />
             )}
 
-            <h4 className="text-lg font-bold text-slate-900">
-              {selectedTuition.title}
-            </h4>
+            <h3 className="text-lg font-bold">{selected.title}</h3>
 
-            <div className="mt-4 grid gap-4 sm:grid-cols-2">
-              <div>
-                <p className="text-xs text-slate-500">Subject</p>
-                <p className="mt-1 font-medium text-slate-800">
-                  {selectedTuition.subject}
-                </p>
-              </div>
-
-              <div>
-                <p className="text-xs text-slate-500">Category</p>
-                <p className="mt-1 font-medium text-slate-800">
-                  {selectedTuition.category || "General"}
-                </p>
-              </div>
-
-              <div>
-                <p className="text-xs text-slate-500">Location</p>
-                <p className="mt-1 font-medium text-slate-800">
-                  {selectedTuition.location}
-                </p>
-              </div>
-
-              <div>
-                <p className="text-xs text-slate-500">Salary</p>
-                <p className="mt-1 font-medium text-slate-800">
-                  à§³
-                  {Number(selectedTuition.salary).toLocaleString("en-BD")}
-                </p>
-              </div>
-
-              <div>
-                <p className="text-xs text-slate-500">Tutor Name</p>
-                <p className="mt-1 font-medium text-slate-800">
-                  {selectedTuition.tutorName || "Not provided"}
-                </p>
-              </div>
-
-              <div>
-                <p className="text-xs text-slate-500">Tutor Email</p>
-                <p className="mt-1 font-medium text-slate-800">
-                  {selectedTuition.tutorEmail || "Not provided"}
-                </p>
-              </div>
+            <div className="mt-5 grid gap-4 sm:grid-cols-2">
+              {[
+                { label: "Subject", value: selected.subject },
+                { label: "Class Level", value: selected.classLevel },
+                { label: "Mode", value: selected.mode },
+                { label: "Location", value: selected.location },
+                { label: "Salary", value: formatFee(tuitionFee(selected)) },
+                { label: "Days / Week", value: String(selected.daysPerWeek || "—") },
+                { label: "Tutor", value: selected.tutorName },
+                { label: "Tutor Email", value: selected.tutorEmail },
+              ].map((item) => (
+                <div key={item.label} className="rounded-xl bg-[var(--secondary)] p-4">
+                  <p className="text-xs text-[var(--muted)]">{item.label}</p>
+                  <p className="mt-1 break-words text-sm font-bold">
+                    {item.value || "Not provided"}
+                  </p>
+                </div>
+              ))}
             </div>
 
             <div className="mt-5">
-              <p className="text-xs text-slate-500">Description</p>
-              <p className="mt-2 whitespace-pre-wrap text-sm leading-7 text-slate-700">
-                {selectedTuition.description}
+              <p className="text-xs text-[var(--muted)]">Description</p>
+              <p className="mt-2 whitespace-pre-line text-sm leading-7 text-[var(--muted)]">
+                {selected.description || "No description provided."}
               </p>
             </div>
 
             <div className="mt-7 flex flex-wrap justify-end gap-3">
               <button
-                onClick={() => setSelectedTuition(null)}
-                className="rounded-lg border border-slate-300 px-5 py-2 font-medium text-slate-700 hover:bg-slate-50"
+                type="button"
+                onClick={() => setSelected(null)}
+                className="btn-secondary"
               >
                 Close
               </button>
-
               <button
-                onClick={() =>
-                  updateStatus(selectedTuition._id, "rejected")
-                }
-                disabled={processingId === selectedTuition._id}
-                className="rounded-lg bg-red-600 px-5 py-2 font-medium text-white hover:bg-red-700 disabled:opacity-50"
+                type="button"
+                onClick={() => updateStatus(selected, "rejected")}
+                disabled={processingId !== null}
+                className="btn-danger"
               >
+                <XCircle size={15} />
                 Reject
               </button>
-
               <button
-                onClick={() =>
-                  updateStatus(selectedTuition._id, "approved")
-                }
-                disabled={processingId === selectedTuition._id}
-                className="rounded-lg bg-green-600 px-5 py-2 font-medium text-white hover:bg-green-700 disabled:opacity-50"
+                type="button"
+                onClick={() => updateStatus(selected, "approved")}
+                disabled={processingId !== null}
+                className="btn-primary"
               >
+                <CheckCircle2 size={15} />
                 Approve
               </button>
             </div>
