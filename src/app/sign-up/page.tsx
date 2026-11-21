@@ -1,11 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   GraduationCap,
-  BookOpen,
   UserRound,
   Mail,
   LockKeyhole,
@@ -15,15 +14,14 @@ import {
   LoaderCircle,
   CheckCircle2,
 } from "lucide-react";
+import { useAuth } from "@/components/AuthProvider";
+import Logo from "@/components/Logo";
+import { toast } from "@/components/ToastProvider";
 
-const API_URL =
-  process.env.NODE_ENV === "development"
-    ? "http://localhost:5000"
-    : "";
-
-export default function SignUpPage() {
+function SignUpForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { signUp } = useAuth();
 
   const initialRole =
     searchParams.get("role") === "tutor" ? "tutor" : "student";
@@ -47,55 +45,40 @@ export default function SignUpPage() {
     setError("");
 
     if (name.trim().length < 2) {
-      setError("Please enter your full name.");
+      toast.error("Please enter your full name.");
+      return;
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      toast.error("Please enter a valid email address.");
       return;
     }
 
     if (password.length < 8) {
-      setError("Password must be at least 8 characters long.");
+      toast.error("Password must be at least 8 characters long.");
       return;
     }
 
     try {
       setLoading(true);
 
-      const response = await fetch(
-        `${API_URL}/api/auth/sign-up/email`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          credentials: "include",
-          body: JSON.stringify({
-            name: name.trim(),
-            email: email.trim(),
-            password,
-            role,
-            plan,
-          }),
-        }
-      );
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          result.message ||
-            result.error?.message ||
-            "Registration failed. Please try again."
-        );
-      }
+      await signUp({
+        name: name.trim(),
+        email: email.trim(),
+        password,
+        role,
+      });
 
       router.push(
         `/sign-in?message=account-created&role=${role}&plan=${plan}`
       );
     } catch (err) {
-      setError(
+      const message =
         err instanceof Error
           ? err.message
-          : "Something went wrong. Please try again."
-      );
+          : "Something went wrong. Please try again.";
+      setError(message);
+      toast.error(message);
     } finally {
       setLoading(false);
     }
@@ -140,13 +123,8 @@ export default function SignUpPage() {
 
         <section className="p-5 sm:p-8 md:p-10 lg:p-12">
           <div className="mx-auto max-w-md">
-            <div className="mb-7 flex items-center gap-2 lg:hidden">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#e8f5f1] text-[#087f6e]">
-                <GraduationCap size={24} />
-              </div>
-              <span className="text-lg font-extrabold text-[#087f6e]">
-                MentorLagbe
-              </span>
+            <div className="mb-7 lg:hidden">
+              <Logo />
             </div>
 
             <h2 className="text-2xl font-extrabold text-[#142c2b] sm:text-3xl">
@@ -227,61 +205,23 @@ export default function SignUpPage() {
               </div>
 
               <div>
-                <label className="mb-3 block text-sm font-semibold text-[#23413c]">
+                <label
+                  htmlFor="role"
+                  className="mb-2 block text-sm font-semibold text-[#23413c]"
+                >
                   I want to join as
                 </label>
 
-                <div className="grid grid-cols-2 gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setRole("student")}
-                    className={`rounded-xl border p-3 text-left transition sm:p-4 ${
-                      role === "student"
-                        ? "border-[#087f6e] bg-[#e8f5f1] ring-1 ring-[#087f6e]"
-                        : "border-[#e3ebe8] bg-white hover:border-[#a8cfc1]"
-                    }`}
-                  >
-                    <BookOpen
-                      size={22}
-                      className={
-                        role === "student"
-                          ? "text-[#087f6e]"
-                          : "text-[#82918c]"
-                      }
-                    />
-                    <span className="mt-2 block text-sm font-bold text-[#142c2b]">
-                      Student
-                    </span>
-                    <span className="mt-1 block text-xs text-[#82918c]">
-                      Find a tutor
-                    </span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setRole("tutor")}
-                    className={`rounded-xl border p-3 text-left transition sm:p-4 ${
-                      role === "tutor"
-                        ? "border-[#087f6e] bg-[#e8f5f1] ring-1 ring-[#087f6e]"
-                        : "border-[#e3ebe8] bg-white hover:border-[#a8cfc1]"
-                    }`}
-                  >
-                    <GraduationCap
-                      size={22}
-                      className={
-                        role === "tutor"
-                          ? "text-[#087f6e]"
-                          : "text-[#82918c]"
-                      }
-                    />
-                    <span className="mt-2 block text-sm font-bold text-[#142c2b]">
-                      Tutor
-                    </span>
-                    <span className="mt-1 block text-xs text-[#82918c]">
-                      Teach students
-                    </span>
-                  </button>
-                </div>
+                <select
+                  id="role"
+                  required
+                  value={role}
+                  onChange={(event) => setRole(event.target.value)}
+                  className="h-12 w-full rounded-xl border border-[#dce8e3] bg-white px-4 text-sm text-[#142c2b] outline-none transition focus:border-[#087f6e] focus:ring-2 focus:ring-[#087f6e]/10"
+                >
+                  <option value="student">Student — find a tutor</option>
+                  <option value="tutor">Tutor — teach students</option>
+                </select>
               </div>
 
               <div>
@@ -317,6 +257,10 @@ export default function SignUpPage() {
                     </button>
                   ))}
                 </div>
+                <p className="mt-2 text-xs leading-5 text-[#82918c]">
+                  Accounts start on Free. Choosing Pro starts Stripe Checkout
+                  after you sign in.
+                </p>
               </div>
 
               {error && (
@@ -364,5 +308,19 @@ export default function SignUpPage() {
         </section>
       </div>
     </main>
+  );
+}
+
+export default function SignUpPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center bg-[#f7faf8]">
+          <LoaderCircle className="animate-spin text-[#087f6e]" size={32} />
+        </div>
+      }
+    >
+      <SignUpForm />
+    </Suspense>
   );
 }

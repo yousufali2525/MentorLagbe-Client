@@ -1,7 +1,7 @@
 
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
@@ -15,23 +15,16 @@ import {
   BookOpen,
   ShieldCheck,
 } from "lucide-react";
-
-const API_URL =
-  process.env.NODE_ENV === "development"
-    ? "http://localhost:5000"
-    : "";
-
-type User = {
-  id?: string;
-  name?: string;
-  email?: string;
-  role?: string;
-  plan?: string;
-};
+import { useAuth } from "@/components/AuthProvider";
+import Logo from "@/components/Logo";
+import { toast } from "@/components/ToastProvider";
+import { apiFetch } from "@/lib/api";
+import { dashboardHrefForRole, normalizeRole } from "@/lib/roles";
 
 function SignInForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { signIn } = useAuth();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -42,160 +35,87 @@ function SignInForm() {
   const accountCreated =
     searchParams.get("message") === "account-created";
 
+  useEffect(() => {
+    if (accountCreated) {
+      toast.success("Account created. Please sign in to continue.");
+    }
+  }, [accountCreated]);
+
   const handleSubmit = async (
     event: React.FormEvent<HTMLFormElement>
   ) => {
     event.preventDefault();
     setError("");
 
+    if (!email.trim()) {
+      toast.error("Please enter your email address.");
+      return;
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      toast.error("Please enter a valid email address.");
+      return;
+    }
+
+    if (!password) {
+      toast.error("Please enter your password.");
+      return;
+    }
+
     try {
       setLoading(true);
 
-      const response = await fetch(
-        `${API_URL}/api/auth/sign-in/email`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          credentials: "include",
-          body: JSON.stringify({
-            email: email.trim(),
-            password,
-          }),
-        }
-      );
+      const user = await signIn({ email: email.trim(), password });
+      const role = normalizeRole(user.role);
 
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          result.message ||
-            result.error?.message ||
-            "Invalid email or password."
-        );
+      if (!role) {
+        toast.error("Your account role is not recognized. Please contact support.");
+        return;
       }
-
-      const tokenResponse = await fetch(`${API_URL}/api/token`, {
-        method: "GET",
-        credentials: "include",
-      });
-
-      const tokenResult = await tokenResponse.json();
-
-      if (!tokenResponse.ok || !tokenResult.token) {
-        throw new Error(
-          tokenResult.message ||
-            "Failed to generate authentication token."
-        );
-      }
-
-      const user = tokenResult.user as User | undefined;
-
-      if (!user || !user.role) {
-        throw new Error(
-          "User role information is missing. Please contact support."
-        );
-      }
-
-      const role = String(user.role).toLowerCase();
-      const plan = searchParams.get("plan");
-      const requestedRole = searchParams.get("role");
-
-      localStorage.setItem(
-        "mentorlagbe-token",
-        tokenResult.token
-      );
-
-      localStorage.setItem(
-        "mentorlagbe-user",
-        JSON.stringify(user)
-      );
-
-      window.dispatchEvent(new Event("auth-updated"));
-      window.dispatchEvent(new Event("user-updated"));
 
       const redirect = searchParams.get("redirect");
-
-      if (
-        redirect?.startsWith("/") &&
-        !redirect.startsWith("//")
-      ) {
+      if (redirect?.startsWith("/") && !redirect.startsWith("//")) {
         router.replace(redirect);
         return;
       }
 
+      const plan = searchParams.get("plan");
+      const requestedRole = normalizeRole(searchParams.get("role"));
+
       if (plan === "pro") {
         if (
           !["student", "tutor"].includes(role) ||
-          requestedRole !== role
+          (requestedRole && requestedRole !== role)
         ) {
-          setError(
-            "The selected plan does not match your account role. Please check your account and try again."
+          toast.error(
+            "The selected plan does not match your account role."
           );
           return;
         }
 
         if (user.plan === "pro") {
-          router.replace(`/dashboard/${role}`);
+          router.replace(dashboardHrefForRole(role));
           return;
         }
 
-        const checkoutResponse = await fetch(
-          `${API_URL}/api/payments/create-checkout-session`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${tokenResult.token}`,
-            },
-            credentials: "include",
-          }
+        const checkout = await apiFetch<{ url: string }>(
+          "/api/payments/create-checkout-session",
+          { method: "POST" }
         );
 
-        const checkoutResult = await checkoutResponse.json();
-
-        if (!checkoutResponse.ok || !checkoutResult.url) {
-          throw new Error(
-            checkoutResult.message ||
-              "Unable to start Stripe Checkout. Please try again."
-          );
-        }
-
-        window.location.assign(checkoutResult.url);
+        toast.info("Redirecting to Stripe Checkout...");
+        window.location.assign(checkout.url);
         return;
       }
 
-      switch (role) {
-        case "student":
-          router.replace("/dashboard/student");
-          break;
-
-        case "tutor":
-          router.replace("/dashboard/tutor");
-          break;
-
-        case "admin":
-          router.replace("/dashboard/admin");
-          break;
-
-        default:
-          localStorage.removeItem("mentorlagbe-token");
-          localStorage.removeItem("mentorlagbe-user");
-
-          window.dispatchEvent(new Event("auth-updated"));
-
-          setError(
-            "Your account role is not recognized. Please contact support."
-          );
-          break;
-      }
+      router.replace(dashboardHrefForRole(role));
     } catch (err) {
-      setError(
+      const message =
         err instanceof Error
           ? err.message
-          : "Unable to sign in. Please try again."
-      );
+          : "Unable to sign in. Please try again.";
+      setError(message);
+      toast.error(message);
     } finally {
       setLoading(false);
     }
@@ -239,14 +159,8 @@ function SignInForm() {
 
         <section className="p-5 sm:p-8 md:p-10 lg:p-12">
           <div className="mx-auto max-w-md">
-            <div className="mb-7 flex items-center gap-2 lg:hidden">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#e8f5f1] text-[#087f6e]">
-                <GraduationCap size={24} />
-              </div>
-
-              <span className="text-lg font-extrabold text-[#087f6e]">
-                MentorLagbe
-              </span>
+            <div className="mb-7 lg:hidden">
+              <Logo />
             </div>
 
             <h2 className="text-2xl font-extrabold text-[#142c2b] sm:text-3xl">
