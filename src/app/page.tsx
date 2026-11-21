@@ -25,6 +25,7 @@ import { toast } from "@/components/ToastProvider";
 import { apiFetch } from "@/lib/api";
 import { normalizeRole } from "@/lib/roles";
 import {
+  bannerOf,
   extractTuitionList,
   formatFee,
   tuitionFee,
@@ -136,11 +137,11 @@ export default function HomePage() {
 
     async function loadTuitions() {
       try {
-        const result = await apiFetch<unknown>("/api/tuitions", {
+        const result = await apiFetch<unknown>("/api/tuitions?page=1&limit=6", {
           auth: false,
         });
 
-        if (active) setTuitions(extractTuitionList(result).slice(0, 6));
+        if (active) setTuitions(extractTuitionList(result));
       } catch {
         if (active) toast.error("Could not load featured tuitions.");
       } finally {
@@ -412,6 +413,7 @@ export default function HomePage() {
             <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
               {tuitions.map((tuition, index) => {
                 const tuitionId = tuition._id || tuition.id || "";
+                const banner = bannerOf(tuition);
 
                 return (
                   <motion.article
@@ -421,9 +423,9 @@ export default function HomePage() {
                     className="card flex h-full min-h-[360px] flex-col overflow-hidden"
                   >
                     <div className="relative flex h-36 shrink-0 items-center justify-center bg-gradient-to-br from-[var(--hero-deep)] to-[var(--hero)] text-[var(--hero-foreground)]">
-                      {tuition.banner ? (
+                      {banner ? (
                         <img
-                          src={tuition.banner}
+                          src={banner}
                           alt=""
                           className="h-full w-full object-cover"
                         />

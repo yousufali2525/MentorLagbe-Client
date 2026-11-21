@@ -22,6 +22,7 @@ import { toast } from "@/components/ToastProvider";
 import { apiFetch, ApiError } from "@/lib/api";
 import { dashboardHrefForRole, normalizeRole } from "@/lib/roles";
 import {
+  bannerOf,
   classLevelOf,
   formatFee,
   locationOf,
@@ -72,6 +73,7 @@ export default function TuitionDetailsPage() {
               ? err.message
               : "Unable to load tuition details.";
         setError(message);
+        toast.error(message);
       } finally {
         if (!controller.signal.aborted) setLoading(false);
       }
@@ -164,6 +166,7 @@ export default function TuitionDetailsPage() {
   }
 
   const fee = tuitionFee(tuition);
+  const banner = bannerOf(tuition);
   const details = [
     { icon: BookOpen, label: "Subject", value: tuition.subject || "Not specified" },
     { icon: GraduationCap, label: "Class Level", value: classLevelOf(tuition) },
@@ -195,10 +198,10 @@ export default function TuitionDetailsPage() {
         <div className="grid items-start gap-7 lg:grid-cols-[1fr_350px]">
           <div className="space-y-6">
             <section className="card p-6 sm:p-8">
-              {tuition.banner && (
+              {banner && (
                 <div className="-mx-6 -mt-6 mb-6 h-56 overflow-hidden rounded-t-2xl sm:-mx-8 sm:-mt-8">
                   <img
-                    src={tuition.banner}
+                    src={banner}
                     alt={tuition.title || "Tuition"}
                     className="h-full w-full object-cover"
                   />
@@ -318,15 +321,26 @@ export default function TuitionDetailsPage() {
                   </Link>
                 </>
               ) : !isStudent ? (
-                <div className="mt-3 rounded-xl status-alert-warning p-4 text-sm leading-6">
-                  You are logged in as {user.role}. Only student accounts can apply.
-                  <Link
-                    href={dashboardHrefForRole(user.role)}
-                    className="mt-2 inline-flex font-bold underline"
+                <>
+                  <div className="mt-3 rounded-xl status-alert-warning p-4 text-sm leading-6">
+                    You are logged in as {user.role}. Only student accounts can apply.
+                    <Link
+                      href={dashboardHrefForRole(user.role)}
+                      className="mt-2 inline-flex font-bold underline"
+                    >
+                      Go to your dashboard
+                    </Link>
+                  </div>
+                  <button
+                    type="button"
+                    disabled
+                    aria-disabled="true"
+                    className="btn-secondary mt-4 h-12 w-full justify-center opacity-60"
                   >
-                    Go to your dashboard
-                  </Link>
-                </div>
+                    Apply for Tuition (Students Only)
+                    <Send size={17} />
+                  </button>
+                </>
               ) : alreadyApplied ? (
                 <div className="mt-4 rounded-xl status-alert-success p-4 text-sm leading-6">
                   <CheckCircle2 size={18} className="mb-1" />

@@ -1,9 +1,10 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useState, type FormEvent } from "react";
+import { Suspense, useCallback, useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
+  ArrowLeft,
   ArrowRight,
   BookOpen,
   CalendarDays,
@@ -17,7 +18,9 @@ import {
 } from "lucide-react";
 import { toast } from "@/components/ToastProvider";
 import { apiFetch } from "@/lib/api";
+import { getPageNumbers } from "@/lib/pagination";
 import {
+  bannerOf,
   classLevelOf,
   extractTuitionList,
   formatFee,
@@ -27,6 +30,7 @@ import {
   tuitionId,
   tutorNameOf,
   type Tuition,
+  type TuitionListResponse,
 } from "@/lib/tuitions";
 
 const SUBJECTS = [
@@ -43,23 +47,23 @@ const SUBJECTS = [
 
 const CLASS_LEVELS = [
   "All Classes",
-  "Class 1",
-  "Class 2",
-  "Class 3",
-  "Class 4",
-  "Class 5",
   "Class 6",
-  "Class 7",
   "Class 8",
   "Class 9",
   "Class 10",
-  "Class 11",
-  "Class 12",
+  "HSC",
   "University",
+  "General",
 ];
 
 const MODES = ["All Modes", "Online", "Offline"];
 const PAGE_SIZE = 9;
+const ALL_SUBJECTS = SUBJECTS[0];
+const ALL_CLASSES = CLASS_LEVELS[0];
+const ALL_MODES = MODES[0];
+
+type FilterKey = "search" | "subject" | "classLevel" | "mode" | "page";
+type FilterPatch = Partial<Record<FilterKey, string | number>>;
 
 function readParam(params: URLSearchParams, key: string, fallback: string) {
   return params.get(key) || fallback;
@@ -69,81 +73,66 @@ function TuitionsPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const [tuitions, setTuitions] = useState<Tuition[]>([]);
-  const [searchInput, setSearchInput] = useState(() =>
-    readParam(searchParams, "search", "")
-  );
-  const [search, setSearch] = useState(() =>
-    readParam(searchParams, "search", "")
-  );
-  const [subject, setSubject] = useState(() =>
-    readParam(searchParams, "subject", "All Subjects")
-  );
-  const [classLevel, setClassLevel] = useState(() =>
-    readParam(searchParams, "classLevel", "All Classes")
-  );
-  const [mode, setMode] = useState(() =>
-    readParam(searchParams, "mode", "All Modes")
-  );
-  const [page, setPage] = useState(() => {
-    const value = Number(searchParams.get("page"));
-    return Number.isInteger(value) && value > 0 ? value : 1;
-  });
+  const search = readParam(searchParams, "search", "").trim();
+  const subject = readParam(searchParams, "subject", ALL_SUBJECTS);
+  const classLevel = readParam(searchParams, "classLevel", ALL_CLASSES);
+  const mode = readParam(searchParams, "mode", ALL_MODES);
+  const page = Math.max(1, Number(searchParams.get("page")) || 1);
 
+  const [searchInput, setSearchInput] = useState(search);
+  const [tuitions, setTuitions] = useState<Tuition[]>([]);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // Debounce the text input so every keystroke does not trigger a request.
+  const updateFilters = useCallback(
+    (patch: FilterPatch) => {
+      const next = new URLSearchParams(searchParams.toString());
+
+      Object.entries(patch).forEach(([key, value]) => {
+        const text = String(value);
+
+        if (key === "page" && (!text || Number(text) <= 1)) {
+          next.delete("page");
+        } else if (key === "search" && !text) {
+          next.delete("search");
+        } else if (key === "subject" && text === ALL_SUBJECTS) {
+          next.delete("subject");
+        } else if (key === "classLevel" && text === ALL_CLASSES) {
+          next.delete("classLevel");
+        } else if (key === "mode" && text === ALL_MODES) {
+          next.delete("mode");
+        } else {
+          next.set(key, text);
+        }
+      });
+
+      const query = next.toString();
+      router.replace(query ? `/tuitions?${query}` : "/tuitions", {
+        scroll: false,
+      });
+    },
+    [router, searchParams]
+  );
+
+  // Browser back/forward and shared links update the visible text box.
   useEffect(() => {
+    if (searchInput !== search) setSearchInput(search);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search]);
+
+  // Debounce the text box before writing it to the URL and firing a request.
+  useEffect(() => {
+    const value = searchInput.trim();
+    if (value === search) return;
+
     const timer = window.setTimeout(() => {
-      setSearch(searchInput.trim());
-      setPage(1);
+      updateFilters({ search: value, page: 1 });
     }, 350);
 
     return () => window.clearTimeout(timer);
-  }, [searchInput]);
-
-  // Keep the URL shareable and in sync with browser back/forward navigation.
-  useEffect(() => {
-    const nextSearch = searchParams.get("search") || "";
-    const nextSubject = readParam(searchParams, "subject", "All Subjects");
-    const nextClassLevel = readParam(searchParams, "classLevel", "All Classes");
-    const nextMode = readParam(searchParams, "mode", "All Modes");
-    const nextPage = Number(searchParams.get("page")) || 1;
-
-    if (
-      nextSearch !== searchInput ||
-      nextSubject !== subject ||
-      nextClassLevel !== classLevel ||
-      nextMode !== mode ||
-      nextPage !== page
-    ) {
-      setSearchInput(nextSearch);
-      setSearch(nextSearch);
-      setSubject(nextSubject);
-      setClassLevel(nextClassLevel);
-      setMode(nextMode);
-      setPage(nextPage);
-    }
-    // Run only when the URL itself changes.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams]);
-
-  useEffect(() => {
-    const params = new URLSearchParams();
-    if (search) params.set("search", search);
-    if (subject !== "All Subjects") params.set("subject", subject);
-    if (classLevel !== "All Classes") params.set("classLevel", classLevel);
-    if (mode !== "All Modes") params.set("mode", mode);
-    if (page > 1) params.set("page", String(page));
-
-    const query = params.toString();
-    const target = query ? `/tuitions?${query}` : "/tuitions";
-    if (`${searchParams.toString() ? "?" : ""}${searchParams.toString()}` !== (query ? `?${query}` : "")) {
-      router.replace(target, { scroll: false });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, subject, classLevel, mode, page]);
+  }, [searchInput, search, updateFilters]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -152,24 +141,31 @@ function TuitionsPageContent() {
       setLoading(true);
       setError("");
 
-      try {
-        const params = new URLSearchParams();
-        if (search) params.set("search", search);
-        if (subject !== "All Subjects") params.set("subject", subject);
+      const params = new URLSearchParams({ page: String(page), limit: String(PAGE_SIZE) });
+      if (search) params.set("search", search);
+      if (subject !== ALL_SUBJECTS) params.set("subject", subject);
+      if (classLevel !== ALL_CLASSES) params.set("classLevel", classLevel);
+      if (mode !== ALL_MODES) params.set("mode", mode);
 
-        const result = await apiFetch<unknown>(
-          `/api/tuitions${params.size ? `?${params.toString()}` : ""}`,
+      try {
+        const result = await apiFetch<TuitionListResponse>(
+          `/api/tuitions?${params.toString()}`,
           { signal: controller.signal, auth: false }
         );
 
         if (controller.signal.aborted) return;
-        setTuitions(extractTuitionList(result));
+        const list = extractTuitionList(result);
+        setTuitions(list);
+        setTotal(Number(result.total) || list.length);
+        setTotalPages(Math.max(1, Number(result.totalPages) || 1));
       } catch (err) {
         if (controller.signal.aborted) return;
         const message =
           err instanceof Error ? err.message : "Unable to load tuition listings.";
         setError(message);
         setTuitions([]);
+        setTotal(0);
+        setTotalPages(1);
         toast.error(message);
       } finally {
         if (!controller.signal.aborted) setLoading(false);
@@ -178,48 +174,29 @@ function TuitionsPageContent() {
 
     loadTuitions();
     return () => controller.abort();
-  }, [search, subject]);
+  }, [search, subject, classLevel, mode, page]);
 
-  // classLevel and mode are filtered locally: the backend ignores those params.
-  const filtered = useMemo(() => {
-    return tuitions.filter((tuition) => {
-      const matchesClass =
-        classLevel === "All Classes" ||
-        classLevelOf(tuition).toLowerCase().includes(classLevel.toLowerCase());
-      const matchesMode =
-        mode === "All Modes" ||
-        modeOf(tuition).toLowerCase() === mode.toLowerCase();
-      return matchesClass && matchesMode;
-    });
-  }, [tuitions, classLevel, mode]);
-
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const currentPage = Math.min(page, totalPages);
-  const pageItems = filtered.slice(
-    (currentPage - 1) * PAGE_SIZE,
-    currentPage * PAGE_SIZE
-  );
+  useEffect(() => {
+    if (!loading && page > totalPages) {
+      updateFilters({ page: totalPages });
+    }
+  }, [loading, page, totalPages, updateFilters]);
 
   function handleSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setSearch(searchInput.trim());
-    setPage(1);
+    updateFilters({ search: searchInput.trim(), page: 1 });
   }
 
   function clearFilters() {
     setSearchInput("");
-    setSearch("");
-    setSubject("All Subjects");
-    setClassLevel("All Classes");
-    setMode("All Modes");
-    setPage(1);
+    router.replace("/tuitions", { scroll: false });
   }
 
   const hasFilters =
     Boolean(search) ||
-    subject !== "All Subjects" ||
-    classLevel !== "All Classes" ||
-    mode !== "All Modes";
+    subject !== ALL_SUBJECTS ||
+    classLevel !== ALL_CLASSES ||
+    mode !== ALL_MODES;
 
   return (
     <div className="min-h-screen bg-[var(--background)]">
@@ -250,7 +227,7 @@ function TuitionsPageContent() {
                 <input
                   value={searchInput}
                   onChange={(event) => setSearchInput(event.target.value)}
-                  placeholder="Search by title, subject or class..."
+                  placeholder="Search by title or subject..."
                   aria-label="Search tuitions"
                   className="h-12 w-full min-w-0 bg-transparent text-sm outline-none placeholder:text-[var(--muted)]"
                 />
@@ -298,10 +275,9 @@ function TuitionsPageContent() {
             <select
               id="subject-filter"
               value={subject}
-              onChange={(event) => {
-                setSubject(event.target.value);
-                setPage(1);
-              }}
+              onChange={(event) =>
+                updateFilters({ subject: event.target.value, page: 1 })
+              }
               className="field-input"
             >
               {SUBJECTS.map((item) => (
@@ -319,10 +295,9 @@ function TuitionsPageContent() {
             <select
               id="class-filter"
               value={classLevel}
-              onChange={(event) => {
-                setClassLevel(event.target.value);
-                setPage(1);
-              }}
+              onChange={(event) =>
+                updateFilters({ classLevel: event.target.value, page: 1 })
+              }
               className="field-input"
             >
               {CLASS_LEVELS.map((item) => (
@@ -340,10 +315,9 @@ function TuitionsPageContent() {
             <select
               id="mode-filter"
               value={mode}
-              onChange={(event) => {
-                setMode(event.target.value);
-                setPage(1);
-              }}
+              onChange={(event) =>
+                updateFilters({ mode: event.target.value, page: 1 })
+              }
               className="field-input"
             >
               {MODES.map((item) => (
@@ -357,15 +331,14 @@ function TuitionsPageContent() {
           <div className="flex items-end">
             <div className="flex h-[2.9rem] w-full items-center gap-2 rounded-xl bg-[var(--secondary)] px-4 text-sm font-semibold text-[var(--primary)]">
               <BookOpen size={18} />
-              {loading ? "Finding tuitions..." : `${filtered.length} listings found`}
+              {loading ? "Finding tuitions..." : `${total} listings found`}
             </div>
           </div>
         </section>
 
         <p className="mb-6 text-xs text-[var(--muted)]">
-          Search and subject filters are handled by the API. Class level,
-          learning mode and pagination are applied locally because the current
-          API does not accept those query parameters.
+          Search, filters and pagination are handled by the API. Your current
+          filters are stored in the URL.
         </p>
 
         {error && (
@@ -376,7 +349,7 @@ function TuitionsPageContent() {
 
         {loading ? (
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {Array.from({ length: 6 }).map((_, index) => (
+            {Array.from({ length: PAGE_SIZE }).map((_, index) => (
               <div key={index} className="card h-[360px] overflow-hidden">
                 <div className="skeleton h-40 w-full" />
                 <div className="space-y-3 p-6">
@@ -388,11 +361,12 @@ function TuitionsPageContent() {
               </div>
             ))}
           </div>
-        ) : pageItems.length > 0 ? (
+        ) : tuitions.length > 0 ? (
           <div className="grid items-stretch gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {pageItems.map((tuition, index) => {
+            {tuitions.map((tuition, index) => {
               const id = tuitionId(tuition);
               const fee = tuitionFee(tuition);
+              const banner = bannerOf(tuition);
 
               return (
                 <article
@@ -400,9 +374,9 @@ function TuitionsPageContent() {
                   className="card group flex h-full flex-col overflow-hidden p-5 sm:p-6"
                 >
                   <div className="-mx-5 -mt-5 mb-5 h-40 overflow-hidden bg-[var(--secondary)] sm:-mx-6 sm:-mt-6">
-                    {tuition.banner ? (
+                    {banner ? (
                       <img
-                        src={tuition.banner}
+                        src={banner}
                         alt={tuition.title || "Tuition"}
                         loading="lazy"
                         className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
@@ -503,22 +477,44 @@ function TuitionsPageContent() {
           >
             <button
               type="button"
-              disabled={currentPage <= 1}
-              onClick={() => setPage(currentPage - 1)}
+              disabled={page <= 1}
+              onClick={() => updateFilters({ page: page - 1 })}
               className="btn-secondary"
             >
+              <ArrowLeft size={16} />
               Previous
             </button>
-            <span className="px-3 text-sm font-semibold text-[var(--muted)]">
-              Page {currentPage} of {totalPages}
-            </span>
+
+            {getPageNumbers(page, totalPages).map((item, index) =>
+              item === "…" ? (
+                <span key={`ellipsis-${index}`} className="px-1 text-sm text-[var(--muted)]">
+                  …
+                </span>
+              ) : (
+                <button
+                  key={item}
+                  type="button"
+                  aria-current={item === page ? "page" : undefined}
+                  onClick={() => updateFilters({ page: item })}
+                  className={
+                    item === page
+                      ? "btn-primary h-10 w-10 justify-center px-0"
+                      : "btn-secondary h-10 w-10 justify-center px-0"
+                  }
+                >
+                  {item}
+                </button>
+              )
+            )}
+
             <button
               type="button"
-              disabled={currentPage >= totalPages}
-              onClick={() => setPage(currentPage + 1)}
+              disabled={page >= totalPages}
+              onClick={() => updateFilters({ page: page + 1 })}
               className="btn-secondary"
             >
               Next
+              <ArrowRight size={16} />
             </button>
           </nav>
         )}
