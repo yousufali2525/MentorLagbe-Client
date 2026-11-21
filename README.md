@@ -9,69 +9,73 @@ Students and parents struggle to find verified tutors by subject, class level, m
 ## Live URL
 
 - Client: https://mentor-lagbe-client-rouge.vercel.app/
-- Server: <SERVER LIVE URL>
+- Server: https://mentorlagbe-server-s98a.onrender.com
 - GitHub (Client): https://github.com/yousufali2525/MentorLagbe-Client
-- GitHub (Server): <SERVER GITHUB URL>
+- GitHub (Server): https://github.com/yousufali2525/mentorlagbe-server
 
 ## Test Credentials (Admin, Tutor, Student)
 
 | Role | Email | Password |
 |---|---|---|
-| Admin | <ADMIN EMAIL> | <ADMIN PASSWORD> |
-| Tutor | <TUTOR EMAIL> | <TUTOR PASSWORD> |
-| Student | <STUDENT EMAIL> | <STUDENT PASSWORD> |
+| Admin | yousufali025250@gmail.com | Asdfghjkl |
+| Tutor | yousufali37@gmail.com | Asdfghjkl |
+| Student | yousufali@gmail.com | Asdfghjkl |
+
+> The server is hosted on Render's free plan, so the first request after a period of inactivity may take 30-60 seconds.
 
 ## Key Features
 
 **Public**
 
-- Marketing landing page with hero search, featured approved tuitions, workflow, subjects, platform statistics and testimonials.
-- Tuition browser at `/tuitions` with server-side search, subject/class-level/mode filters and pagination; filters are stored in the URL.
+- Landing page with hero search, 6 latest approved tuitions, pricing, How It Works, top subjects, platform statistics and testimonials.
+- Tuition browser at `/tuitions` with server-side search, class-level/mode filters and pagination; filters are stored in the URL.
 - Tuition detail pages at `/tuitions/[id]` with tutor information and a student application form.
 - Pricing page with Free and Pro plans for students and tutors, plus payment success and cancel pages.
 
 **Authentication**
 
-- Better Auth sign-in and sign-up for Student and Tutor accounts.
-- Role-aware route guards and redirects for the three dashboard areas.
+- Better Auth sign-in and sign-up with role selection (Student or Tutor) and form validation.
+- Role-aware route guards and redirects for the Student, Tutor and Admin dashboards.
 - Better Auth session exchange into a backend JWT, stored-JWT fallback, bearer-token API requests and automatic refresh after a 401 response.
+- Session and profile image persist after page reload.
 
 **Student**
 
-- Student dashboard with overview statistics, recent applications and a Pro upgrade banner.
-- In-dashboard tuition browser at `/dashboard/student/browse` that keeps the sidebar and top bar visible while preserving URL-based filters and pagination.
-- Apply form that submits phone number, preferred schedule and learning note with a pending status.
-- My Applications page with application summaries, status filters and cancellation of pending applications.
-- Profile page with profile-image upload through the backend endpoint.
+- Dashboard with overview statistics, recent applications and a Pro upgrade banner.
+- In-dashboard tuition browser at `/dashboard/student/browse` that keeps the sidebar and top bar visible.
+- Apply form with phone number, preferred schedule and learning note (student-only, duplicate applications blocked).
+- My Applications page with status badges, filters and cancellation of pending applications.
 
 **Tutor**
 
-- Tutor dashboard with overview statistics, quick actions, applicant activity and a Pro upgrade banner.
-- Post Tuition form with banner-image upload handled by the ImgBB-backed backend endpoint.
-- My Tuitions page for reviewing, editing and deleting tuition posts.
-- Applicants page showing student contact details, preferred schedule and notes, with accept/reject status actions.
+- Dashboard with overview statistics, quick actions and a Pro upgrade banner.
+- Post Tuition form with ImgBB banner upload (Free plan: up to 2 posts, Pro: unlimited).
+- My Tuitions page with approval status, edit, delete and active/closed toggle.
+- Applicants page showing student phone, schedule and note, with accept/reject actions.
 
 **Admin**
 
-- Admin dashboard with live platform statistics.
-- User management with search, active/inactive status and role changes between Student, Tutor and Admin, with self-role protection.
-- Tuition management with pending/approved/rejected tabs and an approval flow for publishing or rejecting posts.
-- Transactions page listing payments and the aggregated total revenue.
+- Dashboard with platform statistics and revenue.
+- User management with search, active/inactive status and role changes between Student, Tutor and Admin.
+- Tuition management with pending/approved/rejected tabs and approve/reject actions.
+- Transactions page listing Stripe payments with total revenue.
 
 **Shared**
 
-- Role-based dashboards with responsive sidebar, top bar and mobile navigation.
-- Dark/light theme toggle persisted in `localStorage` and applied before initial paint.
-- Global loading, 404 and error pages, plus route-level loading skeletons.
-- Toast notifications for form submissions, CRUD actions, payment actions and errors.
+- Update Profile page (name, phone, bio, profile image upload via ImgBB).
+- Stripe Checkout for the Pro plan (Tutor $15, Student $10).
+- Responsive dashboard with collapsible sidebar, top bar and mobile navigation.
+- Dark/light theme toggle.
+- Loading skeletons, custom 404 and error pages, and toast notifications.
 
 ## Tech Stack
 
-- **Framework:** Next.js 16 App Router, React 19 and TypeScript
-- **Styling:** Tailwind CSS 4 with Turbopack integration
+- **Framework:** Next.js 16 (App Router), React 19, TypeScript
+- **Styling:** Tailwind CSS 4
 - **Authentication:** Better Auth with JWT-backed API sessions
-- **UI:** Lucide icons, Framer Motion and Sonner toasts
-- **Backend:** Express REST API consumed through `apiFetch`
+- **UI:** Lucide icons, Framer Motion, Sonner toasts
+- **Payments and media:** Stripe Checkout and ImgBB (handled by the backend)
+- **Backend:** Node.js, Express, MongoDB (see the server repository)
 
 ## NPM Packages Used
 
@@ -92,9 +96,9 @@ Students and parents struggle to find verified tutors by subject, class level, m
 | Package | Version | Purpose |
 |---|---|---|
 | `@tailwindcss/turbopack` | `4.3.3` | Tailwind CSS integration for Turbopack |
-| `@types/node` | `^20` | Node.js TypeScript type definitions |
-| `@types/react` | `^19` | React TypeScript type definitions |
-| `@types/react-dom` | `^19` | React DOM TypeScript type definitions |
+| `@types/node` | `^20` | Node.js type definitions |
+| `@types/react` | `^19` | React type definitions |
+| `@types/react-dom` | `^19` | React DOM type definitions |
 | `eslint` | `^9` | Linting |
 | `eslint-config-next` | `16.4.6` | Next.js ESLint configuration |
 | `tailwindcss` | `4.3.3` | Utility-first CSS framework |
@@ -104,7 +108,7 @@ Students and parents struggle to find verified tutors by subject, class level, m
 
 | Name | Description |
 |---|---|
-| `NEXT_PUBLIC_API_URL` | Express backend origin used by `apiFetch` and the Better Auth session exchange. |
+| `NEXT_PUBLIC_API_URL` | Express backend origin used by the API client and the Better Auth session exchange. |
 
 Example `.env.local` with a placeholder value only:
 
@@ -114,7 +118,7 @@ NEXT_PUBLIC_API_URL=https://your-server.example.com
 
 ## Getting Started
 
-1. Clone the client repository:
+1. Clone the repository:
 
    ```bash
    git clone https://github.com/yousufali2525/MentorLagbe-Client.git
@@ -127,7 +131,7 @@ NEXT_PUBLIC_API_URL=https://your-server.example.com
    npm install
    ```
 
-3. Create `.env.local` in the project root using the placeholder example above and replace the values with your own configuration.
+3. Create `.env.local` in the project root using the example above.
 
 4. Start the development server:
 
@@ -135,14 +139,17 @@ NEXT_PUBLIC_API_URL=https://your-server.example.com
    npm run dev
    ```
 
-5. Create a production build:
+5. Create a production build and start it:
 
    ```bash
    npm run build
-   ```
-
-6. Start the production server:
-
-   ```bash
    npm run start
    ```
+
+## Deployment
+
+The client is deployed on Vercel. The server is deployed on Render and must allow the client origin in its CORS configuration (`CLIENT_URL`), with credentials and the `Authorization` header enabled.
+
+## Author
+
+Yousuf Ali (GitHub: yousufali2525)
