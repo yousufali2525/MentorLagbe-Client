@@ -6,7 +6,6 @@ import { useSearchParams } from "next/navigation";
 import {
   ArrowRight,
   CheckCircle2,
-  Clock3,
   LoaderCircle,
   XCircle,
 } from "lucide-react";
@@ -15,27 +14,23 @@ import { toast } from "@/components/ToastProvider";
 import { apiFetch } from "@/lib/api";
 import { dashboardHrefForRole, normalizeRole } from "@/lib/roles";
 
-type PaymentRecord = {
-  stripeSessionId?: string;
-  paymentStatus?: string;
-};
-
-type PaymentsResponse = {
+type VerifyResponse = {
   success?: boolean;
-  payments?: PaymentRecord[];
+  plan?: string;
+  message?: string;
 };
 
-type VerifyStatus = "loading" | "verified" | "pending" | "error" | "no-session";
+type VerifyStatus = "loading" | "verified" | "error" | "no-session";
 
 function PaymentSuccessContent() {
   const searchParams = useSearchParams();
   const sessionId = searchParams.get("session_id");
   const { status: authStatus, user, refreshUser } = useAuth();
+  const hasUser = Boolean(user);
 
   const [status, setStatus] = useState<VerifyStatus>("loading");
-  const [attempts, setAttempts] = useState(0);
+  const [failure, setFailure] = useState("");
   const toastShown = useRef(false);
-  const userId = user?._id || user?.id || "";
 
   useEffect(() => {
     if (authStatus === "loading") return;
@@ -49,8 +44,9 @@ function PaymentSuccessContent() {
       return;
     }
 
-    if (!userId) {
+    if (!hasUser) {
       setStatus("error");
+      setFailure("Please sign in with the account you used for checkout.");
       if (!toastShown.current) {
         toast.error("Sign in to verify your payment and update your plan.");
         toastShown.current = true;
@@ -62,52 +58,36 @@ function PaymentSuccessContent() {
 
     async function verify() {
       setStatus("loading");
+      setFailure("");
 
-      for (let attempt = 0; attempt < 10; attempt += 1) {
-        if (cancelled) return;
-        setAttempts(attempt + 1);
-
-        try {
-          const result = await apiFetch<PaymentsResponse>(
-            "/api/payments/my-payments",
-            { cache: "no-store" }
-          );
-
-          const confirmed = result.payments?.some(
-            (payment) =>
-              payment.stripeSessionId === sessionId &&
-              payment.paymentStatus === "paid"
-          );
-
-          if (cancelled) return;
-
-          if (confirmed) {
-            await refreshUser().catch(() => undefined);
-            if (cancelled) return;
-            setStatus("verified");
-            if (!toastShown.current) {
-              toast.success("Payment confirmed. Your Pro plan is active!");
-              toastShown.current = true;
-            }
-            return;
-          }
-        } catch {
-          // Keep polling: the Stripe webhook may not have been processed yet.
-        }
-
-        if (cancelled) return;
-        if (attempt < 9) {
-          await new Promise((resolve) => window.setTimeout(resolve, 1500));
-        }
-      }
-
-      if (cancelled) return;
-      setStatus("pending");
-      if (!toastShown.current) {
-        toast.warning(
-          "Payment is still processing. Please check your dashboard shortly."
+      try {
+        const result = await apiFetch<VerifyResponse>(
+          `/api/payments/verify-session?session_id=${encodeURIComponent(sessionId || "")}`,
+          { cache: "no-store" }
         );
-        toastShown.current = true;
+
+        if (!result.success) {
+          throw new Error(result.message || "Payment verification failed.");
+        }
+
+        await refreshUser();
+
+        if (cancelled) return;
+        setStatus("verified");
+        if (!toastShown.current) {
+          toast.success("Payment confirmed. Your Pro plan is active!");
+          toastShown.current = true;
+        }
+      } catch (err) {
+        if (cancelled) return;
+        const message =
+          err instanceof Error ? err.message : "Unable to verify your payment.";
+        setFailure(message);
+        setStatus("error");
+        if (!toastShown.current) {
+          toast.error(message);
+          toastShown.current = true;
+        }
       }
     }
 
@@ -115,47 +95,34 @@ function PaymentSuccessContent() {
     return () => {
       cancelled = true;
     };
-  }, [authStatus, sessionId, userId, refreshUser]);
+  }, [authStatus, sessionId, hasUser, refreshUser]);
 
   const title =
     status === "verified"
       ? "Payment Successful!"
-      : status === "pending"
-        ? "Payment is Processing"
-        : status === "no-session"
-          ? "Missing Payment Session"
-          : status === "error"
-            ? "Sign In Required"
-            : "Verifying Your Payment";
+      : status === "no-session"
+        ? "Missing Payment Session"
+        : status === "error"
+          ? "Payment Verification Failed"
+          : "Verifying Your Payment";
 
   const message =
     status === "verified"
       ? "Your payment was confirmed and your Pro membership is now active."
-      : status === "pending"
-        ? "Stripe accepted your payment, but the webhook has not confirmed it yet. Your plan will update automatically once confirmation arrives."
-        : status === "no-session"
-          ? "We could not find a Stripe session in the return link. If you completed a payment, check your dashboard or contact support."
-          : status === "error"
-            ? "Please sign in with the account you used for checkout so we can verify the payment."
-            : `Checking your payment record${attempts ? ` (attempt ${attempts})` : ""}...`;
+      : status === "no-session"
+        ? "We could not find a Stripe session in the return link. If you completed a payment, check your dashboard or contact support."
+        : status === "error"
+          ? failure || "We could not verify this payment session."
+          : "Confirming your Stripe session and updating your plan...";
 
-  const Icon =
-    status === "verified"
-      ? CheckCircle2
-      : status === "pending"
-        ? Clock3
-        : status === "loading"
-          ? LoaderCircle
-          : XCircle;
+  const Icon = status === "verified" ? CheckCircle2 : status === "loading" ? LoaderCircle : XCircle;
 
   const iconStyle =
     status === "verified"
       ? "status-success"
-      : status === "pending"
-        ? "status-warning"
-        : status === "loading"
-          ? "bg-[var(--secondary)] text-[var(--primary)]"
-          : "status-danger";
+      : status === "loading"
+        ? "bg-[var(--secondary)] text-[var(--primary)]"
+        : "status-danger";
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-[var(--background)] px-4 py-12">
