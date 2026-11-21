@@ -8,7 +8,6 @@ import TutorLayout from "@/components/TutorLayout";
 import AdminLayout from "@/components/AdminLayout";
 import { useAuth } from "@/components/AuthProvider";
 import RoleGuard from "@/components/RoleGuard";
-import SessionLoader from "@/components/SessionLoader";
 import type { Role } from "@/lib/roles";
 
 function requiredRoleForPath(pathname: string): Role | undefined {
@@ -21,7 +20,7 @@ function requiredRoleForPath(pathname: string): Role | undefined {
 
 export default function SiteLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { status, user } = useAuth();
+  const { user } = useAuth();
 
   const isAuthPage = pathname === "/sign-in" || pathname === "/sign-up";
   const isDashboard = pathname.startsWith("/dashboard");
@@ -31,12 +30,10 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
     return <main className="min-h-screen">{children}</main>;
   }
 
-  let mainContent = children;
-
   if (isDashboard) {
     const role = user?.role?.toLowerCase();
 
-    mainContent = (
+    return (
       <RoleGuard allowedRole={allowedRole}>
         {role === "tutor" ? (
           <TutorLayout>{children}</TutorLayout>
@@ -53,13 +50,7 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
     <div className="flex min-h-screen flex-col bg-[var(--background)]">
       <Navbar />
 
-      <main className="flex-1">
-        {status === "loading" && isDashboard ? (
-          <SessionLoader />
-        ) : (
-          mainContent
-        )}
-      </main>
+      <main className="flex-1">{children}</main>
 
       <Footer />
     </div>

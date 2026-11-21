@@ -209,7 +209,7 @@ export default function TuitionDetailsPage() {
                 <span className="badge">{tuition.subject || "General Subject"}</span>
                 <span className="badge">{modeOf(tuition)}</span>
                 {tuition.isActive && (
-                  <span className="badge bg-emerald-50 text-emerald-700">
+                  <span className="badge status-success">
                     <CheckCircle2 size={12} className="mr-1" />
                     Active
                   </span>
@@ -318,7 +318,7 @@ export default function TuitionDetailsPage() {
                   </Link>
                 </>
               ) : !isStudent ? (
-                <div className="mt-3 rounded-xl bg-amber-50 p-4 text-sm leading-6 text-amber-800">
+                <div className="mt-3 rounded-xl status-alert-warning p-4 text-sm leading-6">
                   You are logged in as {user.role}. Only student accounts can apply.
                   <Link
                     href={dashboardHrefForRole(user.role)}
@@ -328,7 +328,7 @@ export default function TuitionDetailsPage() {
                   </Link>
                 </div>
               ) : alreadyApplied ? (
-                <div className="mt-4 rounded-xl bg-emerald-50 p-4 text-sm leading-6 text-emerald-800">
+                <div className="mt-4 rounded-xl status-alert-success p-4 text-sm leading-6">
                   <CheckCircle2 size={18} className="mb-1" />
                   You have already applied for this tuition. Track its status in
                   your dashboard.

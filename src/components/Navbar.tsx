@@ -106,7 +106,7 @@ export default function Navbar() {
                     className="h-10 w-10 rounded-full border border-[var(--border)] object-cover"
                   />
                 ) : (
-                  <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--primary)] text-sm font-bold text-white">
+                  <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--primary)] text-sm font-bold text-[var(--primary-foreground)]">
                     {userName.charAt(0).toUpperCase()}
                   </span>
                 )}
@@ -146,7 +146,7 @@ export default function Navbar() {
                   <button
                     type="button"
                     onClick={handleSignOut}
-                    className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-[var(--danger)] hover:bg-red-50"
+                    className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-semibold text-[var(--danger)] hover-danger-soft"
                   >
                     <LogOut size={17} />
                     Sign Out
@@ -212,7 +212,7 @@ export default function Navbar() {
                       className="h-11 w-11 rounded-full border border-[var(--border)] object-cover"
                     />
                   ) : (
-                    <span className="flex h-11 w-11 items-center justify-center rounded-full bg-[var(--primary)] font-bold text-white">
+                    <span className="flex h-11 w-11 items-center justify-center rounded-full bg-[var(--primary)] font-bold text-[var(--primary-foreground)]">
                       {userName.charAt(0).toUpperCase()}
                     </span>
                   )}
@@ -248,7 +248,7 @@ export default function Navbar() {
                 <button
                   type="button"
                   onClick={handleSignOut}
-                  className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left text-sm font-semibold text-[var(--danger)] hover:bg-red-50"
+                  className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left text-sm font-semibold text-[var(--danger)] hover-danger-soft"
                 >
                   <LogOut size={17} />
                   Sign Out

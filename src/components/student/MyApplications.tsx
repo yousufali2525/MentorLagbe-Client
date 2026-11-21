@@ -21,11 +21,11 @@ type Filter = "all" | "pending" | "accepted" | "rejected";
 function statusStyle(status?: string) {
   switch (status?.toLowerCase()) {
     case "accepted":
-      return "bg-emerald-50 text-emerald-700";
+      return "status-success";
     case "rejected":
-      return "bg-red-50 text-red-700";
+      return "status-danger";
     default:
-      return "bg-amber-50 text-amber-700";
+      return "status-warning";
   }
 }
 
@@ -110,9 +110,9 @@ export default function MyApplications() {
       <div className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {[
           { key: "all" as Filter, label: "Total Applications", color: "text-[var(--primary)]" },
-          { key: "pending" as Filter, label: "Pending", color: "text-amber-600" },
-          { key: "accepted" as Filter, label: "Accepted", color: "text-emerald-600" },
-          { key: "rejected" as Filter, label: "Rejected", color: "text-red-600" },
+          { key: "pending" as Filter, label: "Pending", color: "status-text-warning" },
+          { key: "accepted" as Filter, label: "Accepted", color: "status-text-success" },
+          { key: "rejected" as Filter, label: "Rejected", color: "status-text-danger" },
         ].map((item) => (
           <button
             key={item.key}
@@ -131,7 +131,7 @@ export default function MyApplications() {
       </div>
 
       {error && (
-        <div className="mb-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+        <div className="mb-5 rounded-xl border status-alert-danger p-4 text-sm">
           {error}
         </div>
       )}

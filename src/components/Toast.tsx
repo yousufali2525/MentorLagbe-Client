@@ -25,16 +25,16 @@ export default function Toast({
   }, [onClose]);
 
   const styles = {
-    success: "bg-green-600",
-    error: "bg-red-600",
-    info: "bg-blue-600",
+    success: "bg-[var(--success)] text-[var(--success-foreground)]",
+    error: "bg-[var(--danger)] text-[var(--danger-foreground)]",
+    info: "bg-[var(--info)] text-[var(--info-foreground)]",
   };
 
   return (
     <div className="fixed right-5 top-5 z-[9999]">
       <div
         role="alert"
-        className={`${styles[type]} flex min-w-[260px] items-center justify-between gap-4 rounded-lg px-5 py-4 text-white shadow-lg`}
+        className={`${styles[type]} flex min-w-[260px] items-center justify-between gap-4 rounded-lg px-5 py-4 shadow-lg`}
       >
         <p className="text-sm font-medium">{message}</p>
 

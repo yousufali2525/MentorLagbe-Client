@@ -56,7 +56,7 @@ export default function Footer() {
                 rel="noopener noreferrer"
                 aria-label={social.label}
                 title={social.label}
-                className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-lg font-bold transition-all duration-300 hover:-translate-y-1 hover:bg-[var(--primary)]"
+                className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-lg font-bold transition-all duration-300 hover:-translate-y-1 hover:bg-[var(--primary)] hover:text-[var(--primary-foreground)]"
               >
                 {social.icon}
               </a>
@@ -68,7 +68,7 @@ export default function Footer() {
               rel="noopener noreferrer"
               aria-label="X"
               title="X"
-              className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-lg font-bold transition-all duration-300 hover:-translate-y-1 hover:bg-[var(--primary)]"
+              className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-lg font-bold transition-all duration-300 hover:-translate-y-1 hover:bg-[var(--primary)] hover:text-[var(--primary-foreground)]"
             >
               𝕏
             </a>

@@ -85,9 +85,9 @@ function SignUpForm() {
   };
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-[#f7faf8] px-4 py-8 sm:px-6 sm:py-12">
-      <div className="grid w-full max-w-5xl overflow-hidden rounded-3xl border border-[#e3ebe8] bg-white shadow-[0_20px_60px_rgba(20,44,43,0.08)] lg:grid-cols-[0.85fr_1.15fr]">
-        <section className="hidden flex-col justify-between bg-[#087f6e] p-10 text-white lg:flex">
+    <main className="flex min-h-screen items-center justify-center bg-[var(--background)] px-4 py-8 sm:px-6 sm:py-12">
+      <div className="grid w-full max-w-5xl overflow-hidden rounded-3xl border border-[var(--border)] bg-[var(--card)] shadow-xl lg:grid-cols-[0.85fr_1.15fr]">
+        <section className="hidden flex-col justify-between bg-[var(--hero)] p-10 text-[var(--hero-foreground)] lg:flex">
           <div>
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/15">
               <GraduationCap size={28} />
@@ -97,7 +97,7 @@ function SignUpForm() {
               Start your learning journey with MentorLagbe.
             </h1>
 
-            <p className="mt-5 text-sm leading-7 text-white/75">
+            <p className="mt-5 text-sm leading-7 text-[var(--hero-muted)]">
               Connect with the right people, discover new opportunities
               and make every learning moment count.
             </p>
@@ -116,7 +116,7 @@ function SignUpForm() {
             ))}
           </div>
 
-          <p className="text-xs text-white/60">
+          <p className="text-xs text-[var(--hero-muted)]">
             Learn better. Teach better. Grow together.
           </p>
         </section>
@@ -127,22 +127,22 @@ function SignUpForm() {
               <Logo />
             </div>
 
-            <h2 className="text-2xl font-extrabold text-[#142c2b] sm:text-3xl">
+            <h2 className="text-2xl font-extrabold text-[var(--foreground)] sm:text-3xl">
               Create your account
             </h2>
 
-            <p className="mt-2 text-sm leading-6 text-[#647875]">
+            <p className="mt-2 text-sm leading-6 text-[var(--muted-foreground)]">
               Join MentorLagbe and get started today.
             </p>
 
             <form onSubmit={handleSubmit} className="mt-7 space-y-5">
               <div>
-                <label className="mb-2 block text-sm font-semibold text-[#23413c]">
+                <label className="mb-2 block text-sm font-semibold text-[var(--foreground)]">
                   Full Name
                 </label>
 
-                <div className="flex h-12 items-center gap-3 rounded-xl border border-[#dce8e3] px-4 transition focus-within:border-[#087f6e] focus-within:ring-2 focus-within:ring-[#087f6e]/10">
-                  <UserRound size={18} className="shrink-0 text-[#82918c]" />
+                <div className="flex h-12 items-center gap-3 rounded-xl border border-[var(--border)] px-4 transition focus-within:border-[var(--primary)] focus-within:ring-2 focus-within:ring-[var(--primary-light)]">
+                  <UserRound size={18} className="shrink-0 text-[var(--muted-foreground)]" />
                   <input
                     required
                     minLength={2}
@@ -150,18 +150,18 @@ function SignUpForm() {
                     onChange={(event) => setName(event.target.value)}
                     placeholder="Enter your full name"
                     autoComplete="name"
-                    className="w-full min-w-0 bg-transparent text-sm outline-none placeholder:text-[#a0ada8]"
+                    className="w-full min-w-0 bg-transparent text-sm outline-none placeholder:text-[var(--muted-foreground)]"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="mb-2 block text-sm font-semibold text-[#23413c]">
+                <label className="mb-2 block text-sm font-semibold text-[var(--foreground)]">
                   Email Address
                 </label>
 
-                <div className="flex h-12 items-center gap-3 rounded-xl border border-[#dce8e3] px-4 transition focus-within:border-[#087f6e] focus-within:ring-2 focus-within:ring-[#087f6e]/10">
-                  <Mail size={18} className="shrink-0 text-[#82918c]" />
+                <div className="flex h-12 items-center gap-3 rounded-xl border border-[var(--border)] px-4 transition focus-within:border-[var(--primary)] focus-within:ring-2 focus-within:ring-[var(--primary-light)]">
+                  <Mail size={18} className="shrink-0 text-[var(--muted-foreground)]" />
                   <input
                     required
                     type="email"
@@ -169,18 +169,18 @@ function SignUpForm() {
                     onChange={(event) => setEmail(event.target.value)}
                     placeholder="you@example.com"
                     autoComplete="email"
-                    className="w-full min-w-0 bg-transparent text-sm outline-none placeholder:text-[#a0ada8]"
+                    className="w-full min-w-0 bg-transparent text-sm outline-none placeholder:text-[var(--muted-foreground)]"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="mb-2 block text-sm font-semibold text-[#23413c]">
+                <label className="mb-2 block text-sm font-semibold text-[var(--foreground)]">
                   Password
                 </label>
 
-                <div className="flex h-12 items-center gap-3 rounded-xl border border-[#dce8e3] px-4 transition focus-within:border-[#087f6e] focus-within:ring-2 focus-within:ring-[#087f6e]/10">
-                  <LockKeyhole size={18} className="shrink-0 text-[#82918c]" />
+                <div className="flex h-12 items-center gap-3 rounded-xl border border-[var(--border)] px-4 transition focus-within:border-[var(--primary)] focus-within:ring-2 focus-within:ring-[var(--primary-light)]">
+                  <LockKeyhole size={18} className="shrink-0 text-[var(--muted-foreground)]" />
 
                   <input
                     required
@@ -190,13 +190,13 @@ function SignUpForm() {
                     onChange={(event) => setPassword(event.target.value)}
                     placeholder="At least 8 characters"
                     autoComplete="new-password"
-                    className="w-full min-w-0 bg-transparent text-sm outline-none placeholder:text-[#a0ada8]"
+                    className="w-full min-w-0 bg-transparent text-sm outline-none placeholder:text-[var(--muted-foreground)]"
                   />
 
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="shrink-0 text-[#82918c] transition hover:text-[#087f6e]"
+                    className="shrink-0 text-[var(--muted-foreground)] transition hover:text-[var(--primary)]"
                     aria-label="Toggle password visibility"
                   >
                     {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -207,7 +207,7 @@ function SignUpForm() {
               <div>
                 <label
                   htmlFor="role"
-                  className="mb-2 block text-sm font-semibold text-[#23413c]"
+                  className="mb-2 block text-sm font-semibold text-[var(--foreground)]"
                 >
                   I want to join as
                 </label>
@@ -217,7 +217,7 @@ function SignUpForm() {
                   required
                   value={role}
                   onChange={(event) => setRole(event.target.value)}
-                  className="h-12 w-full rounded-xl border border-[#dce8e3] bg-white px-4 text-sm text-[#142c2b] outline-none transition focus:border-[#087f6e] focus:ring-2 focus:ring-[#087f6e]/10"
+                  className="h-12 w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 text-sm text-[var(--foreground)] outline-none transition focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary-light)]"
                 >
                   <option value="student">Student — find a tutor</option>
                   <option value="tutor">Tutor — teach students</option>
@@ -225,7 +225,7 @@ function SignUpForm() {
               </div>
 
               <div>
-                <label className="mb-3 block text-sm font-semibold text-[#23413c]">
+                <label className="mb-3 block text-sm font-semibold text-[var(--foreground)]">
                   Choose your plan
                 </label>
 
@@ -244,20 +244,20 @@ function SignUpForm() {
                       onClick={() => setPlan(item.value)}
                       className={`rounded-xl border p-3 text-left transition ${
                         plan === item.value
-                          ? "border-[#087f6e] bg-[#e8f5f1] ring-1 ring-[#087f6e]"
-                          : "border-[#e3ebe8] hover:border-[#a8cfc1]"
+                          ? "border-[var(--primary)] bg-[var(--primary-light)] ring-1 ring-[var(--primary)]"
+                          : "border-[var(--border)] hover:border-[var(--primary)]"
                       }`}
                     >
-                      <span className="block text-sm font-bold text-[#142c2b]">
+                      <span className="block text-sm font-bold text-[var(--foreground)]">
                         {item.label}
                       </span>
-                      <span className="mt-1 block text-xs text-[#647875]">
+                      <span className="mt-1 block text-xs text-[var(--muted-foreground)]">
                         {item.price}
                       </span>
                     </button>
                   ))}
                 </div>
-                <p className="mt-2 text-xs leading-5 text-[#82918c]">
+                <p className="mt-2 text-xs leading-5 text-[var(--muted-foreground)]">
                   Accounts start on Free. Choosing Pro starts Stripe Checkout
                   after you sign in.
                 </p>
@@ -266,7 +266,7 @@ function SignUpForm() {
               {error && (
                 <div
                   role="alert"
-                  className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700"
+                  className="status-alert-danger rounded-xl p-3 text-sm"
                 >
                   {error}
                 </div>
@@ -275,7 +275,7 @@ function SignUpForm() {
               <button
                 type="submit"
                 disabled={loading}
-                className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#087f6e] text-sm font-bold text-white transition hover:bg-[#066657] disabled:cursor-not-allowed disabled:opacity-60"
+                className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[var(--primary)] text-sm font-bold text-[var(--primary-foreground)] transition hover:bg-[var(--primary-dark)] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {loading ? (
                   <>
@@ -291,17 +291,17 @@ function SignUpForm() {
               </button>
             </form>
 
-            <p className="mt-7 text-center text-sm text-[#647875]">
+            <p className="mt-7 text-center text-sm text-[var(--muted-foreground)]">
               Already have an account?{" "}
               <Link
                 href="/sign-in"
-                className="font-bold text-[#087f6e] hover:underline"
+                className="font-bold text-[var(--primary)] hover:underline"
               >
                 Sign In
               </Link>
             </p>
 
-            <p className="mt-5 text-center text-xs text-[#9aa9a4]">
+            <p className="mt-5 text-center text-xs text-[var(--muted-foreground)]">
               By creating an account, you agree to use MentorLagbe responsibly.
             </p>
           </div>
@@ -315,8 +315,8 @@ export default function SignUpPage() {
   return (
     <Suspense
       fallback={
-        <div className="flex min-h-screen items-center justify-center bg-[#f7faf8]">
-          <LoaderCircle className="animate-spin text-[#087f6e]" size={32} />
+        <div className="flex min-h-screen items-center justify-center bg-[var(--background)]">
+          <LoaderCircle className="animate-spin text-[var(--primary)]" size={32} />
         </div>
       }
     >

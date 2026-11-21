@@ -14,6 +14,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { useAuth } from "@/components/AuthProvider";
+import StatCard from "@/components/dashboard/StatCard";
 import { toast } from "@/components/ToastProvider";
 import { useMyApplications } from "@/hooks/useMyApplications";
 import { apiFetch } from "@/lib/api";
@@ -81,9 +82,9 @@ export default function StudentDashboardPage() {
     <div className="mx-auto w-full max-w-[1600px]">
       <div className="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
         <div>
-          <h1 className="text-2xl font-extrabold sm:text-3xl">
+          <h2 className="text-2xl font-extrabold tracking-tight sm:text-3xl">
             Hello, {user?.name?.split(" ")[0] || "Student"}!
-          </h1>
+          </h2>
           <p className="mt-2 text-sm text-[var(--muted)]">
             Here is an overview of your learning activities.
           </p>
@@ -109,41 +110,36 @@ export default function StudentDashboardPage() {
         </div>
       </div>
 
-      <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
-        {stats.map((stat) => {
-          const Icon = stat.icon;
-          return (
-            <div key={stat.title} className="card p-6">
-              <div className="flex items-center justify-between gap-3">
-                <p className="text-sm font-semibold text-[var(--muted)]">
-                  {stat.title}
-                </p>
-                <div className="rounded-xl bg-[var(--secondary)] p-3 text-[var(--primary)]">
-                  <Icon size={22} />
-                </div>
-              </div>
-              <p className="mt-6 text-3xl font-extrabold">{stat.value}</p>
-            </div>
-          );
-        })}
-      </div>
+      <section
+        aria-label="Student statistics"
+        className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"
+      >
+        {stats.map((stat) => (
+          <StatCard
+            key={stat.title}
+            title={stat.title}
+            value={stat.value}
+            icon={stat.icon}
+          />
+        ))}
+      </section>
 
       {user?.plan?.toLowerCase() !== "pro" && (
-        <div className="mt-6 flex flex-col gap-4 rounded-2xl bg-[var(--primary)] p-6 text-white sm:flex-row sm:items-center sm:justify-between">
+        <div className="mt-6 flex flex-col gap-4 rounded-2xl bg-[var(--primary)] p-6 text-[var(--primary-foreground)] sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-start gap-3">
             <Sparkles className="shrink-0" size={24} />
             <div>
               <h2 className="text-lg font-bold">
                 Unlock more with Student Pro
               </h2>
-              <p className="mt-1 text-sm text-white/80">
+              <p className="mt-1 text-sm text-[var(--primary-foreground)]">
                 Priority applications and a highlighted profile.
               </p>
             </div>
           </div>
           <Link
             href="/pricing"
-            className="inline-flex justify-center rounded-xl bg-white px-5 py-3 text-sm font-bold text-[var(--primary)]"
+            className="inline-flex justify-center rounded-xl bg-[var(--primary-foreground)] px-5 py-3 text-sm font-bold text-[var(--primary)]"
           >
             View plans
           </Link>

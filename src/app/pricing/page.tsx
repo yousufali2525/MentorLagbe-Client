@@ -200,7 +200,7 @@ export default function PricingPage() {
                 }`}
               >
                 {plan.featured && (
-                  <span className="badge absolute -top-3 right-5 bg-[var(--primary)] text-white">
+                  <span className="badge absolute -top-3 right-5 bg-[var(--primary)] text-[var(--primary-foreground)]">
                     Premium
                   </span>
                 )}
@@ -208,7 +208,7 @@ export default function PricingPage() {
                 <div
                   className={`flex h-12 w-12 items-center justify-center rounded-xl ${
                     plan.featured
-                      ? "bg-[var(--primary)] text-white"
+                      ? "bg-[var(--primary)] text-[var(--primary-foreground)]"
                       : "bg-[var(--secondary)] text-[var(--primary)]"
                   }`}
                 >

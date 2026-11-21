@@ -369,7 +369,7 @@ function TuitionsPageContent() {
         </p>
 
         {error && (
-          <div className="mb-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+          <div className="mb-6 rounded-xl border status-alert-danger p-4 text-sm">
             {error}
           </div>
         )}

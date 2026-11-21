@@ -53,7 +53,7 @@ export default function PostTuitionPage() {
       </div>
 
       {freeLimitReached && (
-        <div className="mb-6 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+        <div className="mb-6 flex items-start gap-3 rounded-xl border status-alert-warning p-4 text-sm">
           <Info size={18} className="mt-0.5 shrink-0" />
           <div>
             Free tutors can post a maximum of 2 tuitions.

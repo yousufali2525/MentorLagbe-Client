@@ -122,9 +122,9 @@ function SignInForm() {
   };
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-[#f7faf8] px-4 py-8 sm:px-6 sm:py-12">
-      <div className="grid w-full max-w-5xl overflow-hidden rounded-3xl border border-[#e3ebe8] bg-white shadow-[0_20px_60px_rgba(20,44,43,0.08)] lg:grid-cols-[0.85fr_1.15fr]">
-        <section className="hidden flex-col justify-between bg-[#087f6e] p-10 text-white lg:flex">
+    <main className="flex min-h-screen items-center justify-center bg-[var(--background)] px-4 py-8 sm:px-6 sm:py-12">
+      <div className="grid w-full max-w-5xl overflow-hidden rounded-3xl border border-[var(--border)] bg-[var(--card)] shadow-xl lg:grid-cols-[0.85fr_1.15fr]">
+        <section className="hidden flex-col justify-between bg-[var(--hero)] p-10 text-[var(--hero-foreground)] lg:flex">
           <div>
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/15">
               <GraduationCap size={28} />
@@ -134,7 +134,7 @@ function SignInForm() {
               Welcome back to your learning community.
             </h1>
 
-            <p className="mt-5 text-sm leading-7 text-white/75">
+            <p className="mt-5 text-sm leading-7 text-[var(--hero-muted)]">
               Continue connecting with tutors, discovering opportunities
               and making progress with MentorLagbe.
             </p>
@@ -152,7 +152,7 @@ function SignInForm() {
             </div>
           </div>
 
-          <p className="text-xs text-white/60">
+          <p className="text-xs text-[var(--hero-muted)]">
             Learn better. Teach better. Grow together.
           </p>
         </section>
@@ -163,28 +163,28 @@ function SignInForm() {
               <Logo />
             </div>
 
-            <h2 className="text-2xl font-extrabold text-[#142c2b] sm:text-3xl">
+            <h2 className="text-2xl font-extrabold text-[var(--foreground)] sm:text-3xl">
               Welcome back
             </h2>
 
-            <p className="mt-2 text-sm leading-6 text-[#647875]">
+            <p className="mt-2 text-sm leading-6 text-[var(--muted-foreground)]">
               Sign in to continue to your MentorLagbe account.
             </p>
 
             {accountCreated && (
-              <div className="mt-6 rounded-xl border border-green-200 bg-green-50 p-3 text-sm text-green-700">
+              <div className="mt-6 status-alert-success rounded-xl p-3 text-sm">
                 Your account has been created. Please sign in.
               </div>
             )}
 
             <form onSubmit={handleSubmit} className="mt-8 space-y-5">
               <div>
-                <label className="mb-2 block text-sm font-semibold text-[#23413c]">
+                <label className="mb-2 block text-sm font-semibold text-[var(--foreground)]">
                   Email Address
                 </label>
 
-                <div className="flex h-12 items-center gap-3 rounded-xl border border-[#dce8e3] px-4 transition focus-within:border-[#087f6e] focus-within:ring-2 focus-within:ring-[#087f6e]/10">
-                  <Mail size={18} className="shrink-0 text-[#82918c]" />
+                <div className="flex h-12 items-center gap-3 rounded-xl border border-[var(--border)] px-4 transition focus-within:border-[var(--primary)] focus-within:ring-2 focus-within:ring-[var(--primary-light)]">
+                  <Mail size={18} className="shrink-0 text-[var(--muted-foreground)]" />
 
                   <input
                     required
@@ -193,20 +193,20 @@ function SignInForm() {
                     onChange={(event) => setEmail(event.target.value)}
                     placeholder="you@example.com"
                     autoComplete="email"
-                    className="w-full min-w-0 bg-transparent text-sm outline-none placeholder:text-[#a0ada8]"
+                    className="w-full min-w-0 bg-transparent text-sm outline-none placeholder:text-[var(--muted-foreground)]"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="mb-2 block text-sm font-semibold text-[#23413c]">
+                <label className="mb-2 block text-sm font-semibold text-[var(--foreground)]">
                   Password
                 </label>
 
-                <div className="flex h-12 items-center gap-3 rounded-xl border border-[#dce8e3] px-4 transition focus-within:border-[#087f6e] focus-within:ring-2 focus-within:ring-[#087f6e]/10">
+                <div className="flex h-12 items-center gap-3 rounded-xl border border-[var(--border)] px-4 transition focus-within:border-[var(--primary)] focus-within:ring-2 focus-within:ring-[var(--primary-light)]">
                   <LockKeyhole
                     size={18}
-                    className="shrink-0 text-[#82918c]"
+                    className="shrink-0 text-[var(--muted-foreground)]"
                   />
 
                   <input
@@ -216,13 +216,13 @@ function SignInForm() {
                     onChange={(event) => setPassword(event.target.value)}
                     placeholder="Enter your password"
                     autoComplete="current-password"
-                    className="w-full min-w-0 bg-transparent text-sm outline-none placeholder:text-[#a0ada8]"
+                    className="w-full min-w-0 bg-transparent text-sm outline-none placeholder:text-[var(--muted-foreground)]"
                   />
 
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="shrink-0 text-[#82918c] transition hover:text-[#087f6e]"
+                    className="shrink-0 text-[var(--muted-foreground)] transition hover:text-[var(--primary)]"
                     aria-label="Toggle password visibility"
                   >
                     {showPassword ? (
@@ -237,7 +237,7 @@ function SignInForm() {
               {error && (
                 <div
                   role="alert"
-                  className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700"
+                  className="status-alert-danger rounded-xl p-3 text-sm"
                 >
                   {error}
                 </div>
@@ -246,7 +246,7 @@ function SignInForm() {
               <button
                 type="submit"
                 disabled={loading}
-                className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#087f6e] text-sm font-bold text-white transition hover:bg-[#066657] disabled:cursor-not-allowed disabled:opacity-60"
+                className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[var(--primary)] text-sm font-bold text-[var(--primary-foreground)] transition hover:bg-[var(--primary-dark)] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {loading ? (
                   <>
@@ -262,17 +262,17 @@ function SignInForm() {
               </button>
             </form>
 
-            <p className="mt-7 text-center text-sm text-[#647875]">
+            <p className="mt-7 text-center text-sm text-[var(--muted-foreground)]">
               Don&apos;t have an account?{" "}
               <Link
                 href="/sign-up"
-                className="font-bold text-[#087f6e] hover:underline"
+                className="font-bold text-[var(--primary)] hover:underline"
               >
                 Create Account
               </Link>
             </p>
 
-            <p className="mt-5 text-center text-xs text-[#9aa9a4]">
+            <p className="mt-5 text-center text-xs text-[var(--muted-foreground)]">
               Your learning journey continues with MentorLagbe.
             </p>
           </div>
@@ -286,8 +286,8 @@ export default function SignInPage() {
   return (
     <Suspense
       fallback={
-        <div className="flex min-h-screen items-center justify-center bg-[#f7faf8]">
-          <LoaderCircle className="animate-spin text-[#087f6e]" size={32} />
+        <div className="flex min-h-screen items-center justify-center bg-[var(--background)]">
+          <LoaderCircle className="animate-spin text-[var(--primary)]" size={32} />
         </div>
       }
     >

@@ -16,6 +16,7 @@ import {
   GraduationCap,
 } from "lucide-react";
 import { useAuth } from "@/components/AuthProvider";
+import StatCard from "@/components/dashboard/StatCard";
 import { toast } from "@/components/ToastProvider";
 import { apiFetch } from "@/lib/api";
 
@@ -135,9 +136,9 @@ export default function AdminDashboardPage() {
           <p className="text-sm font-bold uppercase tracking-[0.16em] text-[var(--primary)]">
             Administration
           </p>
-          <h1 className="section-title mt-2">
+          <h2 className="mt-2 text-2xl font-extrabold tracking-tight sm:text-3xl">
             Welcome, {user?.name?.split(" ")[0] || "Admin"}!
-          </h1>
+          </h2>
           <p className="mt-2 text-sm text-[var(--muted)]">
             Monitor and manage the MentorLagbe platform.
           </p>
@@ -154,27 +155,21 @@ export default function AdminDashboardPage() {
         </button>
       </div>
 
-      <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-        {cards.map((card) => {
-          const Icon = card.icon;
-          return (
-            <div key={card.title} className="card p-6">
-              <div className="flex items-center justify-between gap-3">
-                <p className="text-sm font-semibold text-[var(--muted)]">
-                  {card.title}
-                </p>
-                <div className="rounded-xl bg-[var(--secondary)] p-3 text-[var(--primary)]">
-                  <Icon size={21} />
-                </div>
-              </div>
-              <p className="mt-6 text-3xl font-extrabold">
-                {loading ? "…" : card.value ?? 0}
-              </p>
-              <p className="mt-2 text-xs text-[var(--muted)]">{card.hint}</p>
-            </div>
-          );
-        })}
-      </div>
+      <section
+        aria-label="Platform statistics"
+        className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3"
+      >
+        {cards.map((card) => (
+          <StatCard
+            key={card.title}
+            title={card.title}
+            value={card.value ?? 0}
+            icon={card.icon}
+            hint={card.hint}
+            loading={loading}
+          />
+        ))}
+      </section>
 
       <section className="mt-8">
         <div className="mb-5">

@@ -13,7 +13,7 @@ export default function PaymentCancelPage() {
   return (
     <main className="flex min-h-screen items-center justify-center bg-[var(--background)] px-4 py-12">
       <div className="card w-full max-w-lg p-8 text-center">
-        <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-full bg-amber-50 text-amber-600">
+        <div className="mx-auto mb-5 flex h-20 w-20 items-center justify-center rounded-full status-warning">
           <XCircle size={38} />
         </div>
 

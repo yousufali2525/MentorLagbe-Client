@@ -42,8 +42,8 @@ function userId(user: AdminUser) {
 
 function statusStyle(active?: boolean) {
   return active === false
-    ? "bg-red-50 text-red-700"
-    : "bg-emerald-50 text-emerald-700";
+    ? "status-danger"
+    : "status-success";
 }
 
 export default function AdminUsersPage() {
@@ -348,8 +348,8 @@ export default function AdminUsersPage() {
                         disabled={updatingId !== null || isSelf}
                         className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-bold transition ${
                           item.isActive === false
-                            ? "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
-                            : "bg-red-50 text-red-700 hover:bg-red-100"
+                            ? "status-success hover:opacity-90"
+                            : "status-danger hover:opacity-90"
                         }`}
                       >
                         {item.isActive === false ? (

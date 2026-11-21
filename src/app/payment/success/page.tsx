@@ -150,12 +150,12 @@ function PaymentSuccessContent() {
 
   const iconStyle =
     status === "verified"
-      ? "bg-emerald-50 text-emerald-600"
+      ? "status-success"
       : status === "pending"
-        ? "bg-amber-50 text-amber-600"
+        ? "status-warning"
         : status === "loading"
           ? "bg-[var(--secondary)] text-[var(--primary)]"
-          : "bg-red-50 text-red-600";
+          : "status-danger";
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-[var(--background)] px-4 py-12">

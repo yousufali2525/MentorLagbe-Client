@@ -50,11 +50,11 @@ function formatUsd(amount?: number, currency?: string) {
 function statusStyle(status?: string) {
   switch (status?.toLowerCase()) {
     case "paid":
-      return "bg-emerald-50 text-emerald-700";
+      return "status-success";
     case "failed":
-      return "bg-red-50 text-red-700";
+      return "status-danger";
     default:
-      return "bg-amber-50 text-amber-700";
+      return "status-warning";
   }
 }
 

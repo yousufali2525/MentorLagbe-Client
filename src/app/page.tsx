@@ -34,10 +34,10 @@ import {
 type PlanRole = "student" | "tutor";
 
 const subjects = [
-  { name: "Math", icon: "∑", color: "bg-blue-50 text-blue-700" },
-  { name: "Physics", icon: "⚛", color: "bg-purple-50 text-purple-700" },
-  { name: "Programming", icon: "</>", color: "bg-emerald-50 text-emerald-700" },
-  { name: "IELTS", icon: "A+", color: "bg-orange-50 text-orange-700" },
+  { name: "Math", icon: "∑", color: "bg-[var(--surface-muted)] text-[var(--primary)]" },
+  { name: "Physics", icon: "⚛", color: "bg-[var(--surface-muted)] text-[var(--primary)]" },
+  { name: "Programming", icon: "</>", color: "bg-[var(--surface-muted)] text-[var(--primary)]" },
+  { name: "IELTS", icon: "A+", color: "bg-[var(--surface-muted)] text-[var(--primary)]" },
 ];
 
 const steps = [
@@ -199,12 +199,12 @@ export default function HomePage() {
   return (
     <div className="overflow-hidden">
       <section className="relative bg-[var(--secondary)]">
-        <div className="pointer-events-none absolute -right-32 -top-32 h-96 w-96 rounded-full bg-[#bfe6d8] opacity-70 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-32 left-0 h-72 w-72 rounded-full bg-[#d7eee5] opacity-80 blur-3xl" />
+        <div className="pointer-events-none absolute -right-32 -top-32 h-96 w-96 rounded-full bg-[var(--primary-light)] opacity-70 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-32 left-0 h-72 w-72 rounded-full bg-[var(--primary-light)] opacity-80 blur-3xl" />
 
         <div className="relative mx-auto grid max-w-7xl items-center gap-12 px-5 py-20 sm:px-8 md:py-24 lg:grid-cols-2 lg:px-10 lg:py-28">
           <motion.div {...reveal}>
-            <div className="mb-7 inline-flex items-center gap-2 rounded-full border border-[#cce6dc] bg-white px-4 py-2 text-sm font-semibold text-[var(--primary)] shadow-sm">
+            <div className="mb-7 inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--card)] px-4 py-2 text-sm font-semibold text-[var(--primary)] shadow-sm">
               <Sparkles size={16} />
               Your learning journey starts here
             </div>
@@ -220,7 +220,7 @@ export default function HomePage() {
 
             <form
               onSubmit={handleSearch}
-              className="mt-9 flex max-w-xl flex-col gap-3 rounded-2xl border border-[var(--border)] bg-white p-3 shadow-lg sm:flex-row"
+              className="mt-9 flex max-w-xl flex-col gap-3 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-3 shadow-lg sm:flex-row"
             >
               <div className="flex min-w-0 flex-1 items-center gap-3 px-3">
                 <Search className="shrink-0 text-[var(--primary)]" size={21} />
@@ -230,7 +230,7 @@ export default function HomePage() {
                   onChange={(event) => setSearchText(event.target.value)}
                   placeholder="Search subject, class or tuition..."
                   aria-label="Search tuitions"
-                  className="w-full min-w-0 border-0 bg-transparent py-3 text-sm outline-none placeholder:text-[#9aa9a3]"
+                  className="w-full min-w-0 border-0 bg-transparent py-3 text-sm text-[var(--foreground)] outline-none placeholder:text-[var(--muted-foreground)]"
                 />
               </div>
               <button type="submit" className="btn-primary justify-center px-7 py-4">
@@ -257,38 +257,38 @@ export default function HomePage() {
             transition={{ duration: 0.6, ease: "easeOut" }}
             className="relative mx-auto w-full max-w-lg"
           >
-            <div className="relative overflow-hidden rounded-[32px] bg-[#103e36] p-7 shadow-2xl sm:p-10">
+            <div className="relative overflow-hidden rounded-[32px] bg-[var(--hero-deep)] p-7 shadow-2xl sm:p-10">
               <div className="absolute -right-16 -top-16 h-56 w-56 rounded-full border-[35px] border-white/5" />
               <div className="absolute -bottom-20 -left-16 h-64 w-64 rounded-full border-[40px] border-white/5" />
 
               <div className="relative">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-semibold text-[#c2e4d8]">
+                  <span className="text-sm font-semibold text-[var(--hero-muted)]">
                     Learning made better
                   </span>
-                  <span className="rounded-full bg-[#d3f4e7] px-3 py-1 text-xs font-bold text-[var(--primary)]">
+                  <span className="rounded-full bg-[var(--hero-accent)] px-3 py-1 text-xs font-bold text-[var(--hero-deep)]">
                     MentorLagbe
                   </span>
                 </div>
 
                 <div className="mt-10 flex justify-center">
                   <div className="flex h-44 w-44 items-center justify-center rounded-full border border-white/20 bg-white/10 sm:h-52 sm:w-52">
-                    <div className="flex h-32 w-32 items-center justify-center rounded-full bg-[#bdebd9] text-[var(--primary)] sm:h-40 sm:w-40">
+                    <div className="flex h-32 w-32 items-center justify-center rounded-full bg-[var(--hero-accent)] text-[var(--hero-deep)] sm:h-40 sm:w-40">
                       <GraduationCap size={86} strokeWidth={1.5} />
                     </div>
                   </div>
                 </div>
 
                 <div className="mt-10 rounded-2xl border border-white/15 bg-white/10 p-5 backdrop-blur-sm">
-                  <p className="text-sm font-medium text-[#c2e4d8]">
+                  <p className="text-sm font-medium text-[var(--hero-muted)]">
                     Your next step starts today
                   </p>
-                  <p className="mt-2 text-2xl font-bold text-white">
+                  <p className="mt-2 text-2xl font-bold text-[var(--hero-foreground)]">
                     Learn. Grow. Succeed.
                   </p>
                   <div className="mt-5 flex items-center gap-2">
-                    <span className="h-2 w-2 rounded-full bg-[#6be0b6]" />
-                    <span className="text-xs text-[#c2e4d8]">
+                    <span className="h-2 w-2 rounded-full bg-[var(--hero-accent)]" />
+                    <span className="text-xs text-[var(--hero-muted)]">
                       Find your learning partner
                     </span>
                   </div>
@@ -296,7 +296,7 @@ export default function HomePage() {
               </div>
             </div>
 
-            <div className="absolute -left-4 top-20 hidden items-center gap-3 rounded-2xl bg-white p-4 shadow-xl sm:flex">
+            <div className="absolute -left-4 top-20 hidden items-center gap-3 rounded-2xl bg-[var(--card)] p-4 shadow-xl sm:flex">
               <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--secondary)] text-[var(--primary)]">
                 <BookOpen size={22} />
               </div>
@@ -308,8 +308,8 @@ export default function HomePage() {
               </div>
             </div>
 
-            <div className="absolute -right-4 bottom-24 hidden items-center gap-3 rounded-2xl bg-white p-4 shadow-xl sm:flex">
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-amber-50 text-amber-700">
+            <div className="absolute -right-4 bottom-24 hidden items-center gap-3 rounded-2xl bg-[var(--card)] p-4 shadow-xl sm:flex">
+              <div className="status-warning flex h-11 w-11 items-center justify-center rounded-xl">
                 <Sparkles size={22} />
               </div>
               <div>
@@ -323,7 +323,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="border-b border-[var(--border)] bg-white">
+      <section className="border-b border-[var(--border)] bg-[var(--card)]">
         <div className="mx-auto grid max-w-7xl grid-cols-2 gap-6 px-5 py-8 sm:px-8 md:grid-cols-4 lg:px-10">
           {[
             { icon: Users, title: "Student focused", text: "Learning first" },
@@ -420,7 +420,7 @@ export default function HomePage() {
                     transition={{ duration: 0.4, delay: index * 0.05 }}
                     className="card flex h-full min-h-[360px] flex-col overflow-hidden"
                   >
-                    <div className="relative flex h-36 shrink-0 items-center justify-center bg-gradient-to-br from-[#0d6b5c] to-[#28a58b] text-white">
+                    <div className="relative flex h-36 shrink-0 items-center justify-center bg-gradient-to-br from-[var(--hero-deep)] to-[var(--hero)] text-[var(--hero-foreground)]">
                       {tuition.banner ? (
                         <img
                           src={tuition.banner}
@@ -430,7 +430,7 @@ export default function HomePage() {
                       ) : (
                         <GraduationCap size={52} strokeWidth={1.4} />
                       )}
-                      <span className="absolute left-4 top-4 rounded-full bg-white/95 px-3 py-1 text-xs font-bold text-[var(--primary)]">
+                      <span className="absolute left-4 top-4 rounded-full bg-[var(--card)] px-3 py-1 text-xs font-bold text-[var(--primary)]">
                         {tuition.subject || "General"}
                       </span>
                     </div>
@@ -514,7 +514,7 @@ export default function HomePage() {
                 <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--secondary)] text-[var(--primary)]">
                   <step.icon size={26} />
                 </div>
-                <span className="text-3xl font-extrabold text-[#e1eee8]">
+                <span className="text-3xl font-extrabold text-[var(--muted-foreground)] opacity-30">
                   {step.number}
                 </span>
               </div>
@@ -529,7 +529,7 @@ export default function HomePage() {
         </div>
       </motion.section>
 
-      <motion.section {...reveal} className="bg-white py-20">
+      <motion.section {...reveal} className="bg-[var(--card)] py-20">
         <div className="mx-auto max-w-7xl px-5 sm:px-8 lg:px-10">
           <div className="mb-10 text-center">
             <p className="text-sm font-bold uppercase tracking-[0.16em] text-[var(--primary)]">
@@ -574,7 +574,7 @@ export default function HomePage() {
                 <p className="mt-4 flex-1 text-sm leading-7 text-[var(--muted)]">
                   “{item.quote}”
                 </p>
-                <div className="mt-6 flex items-center gap-1 text-amber-500">
+                <div className="mt-6 flex items-center gap-1 text-[var(--warning)]">
                   {Array.from({ length: 5 }).map((_, index) => (
                     <Star key={index} size={15} fill="currentColor" />
                   ))}
@@ -638,7 +638,7 @@ export default function HomePage() {
               }`}
             >
               {plan.pro && (
-                <span className="mb-3 self-start rounded-full bg-[var(--primary)] px-3 py-1 text-xs font-bold text-white">
+                <span className="mb-3 self-start rounded-full bg-[var(--primary)] px-3 py-1 text-xs font-bold text-[var(--primary-foreground)]">
                   PRO
                 </span>
               )}
@@ -683,7 +683,7 @@ export default function HomePage() {
 
       <section className="px-5 pb-20 sm:px-8 lg:px-10">
         <div className="mx-auto max-w-7xl rounded-[28px] bg-[var(--secondary)] px-6 py-14 text-center sm:px-12 sm:py-16">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-[var(--primary)] shadow-sm">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--card)] text-[var(--primary)] shadow-sm">
             <GraduationCap size={30} />
           </div>
           <h2 className="mx-auto mt-6 max-w-2xl text-3xl font-extrabold tracking-tight text-[var(--foreground)] sm:text-4xl">

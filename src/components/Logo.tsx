@@ -14,7 +14,7 @@ export default function Logo({
 }) {
   return (
     <Link href={href} className="inline-flex min-w-0 items-center gap-2.5">
-      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--primary)] text-white">
+      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--primary)] text-[var(--primary-foreground)]">
         <GraduationCap size={24} strokeWidth={2.2} />
       </span>
 
@@ -22,18 +22,18 @@ export default function Logo({
         <span className="min-w-0">
           <span
             className={`block whitespace-nowrap text-xl font-extrabold tracking-tight ${
-              inverse ? "text-white" : "text-[var(--foreground)]"
+              inverse ? "text-[var(--hero-foreground)]" : "text-[var(--foreground)]"
             }`}
           >
             Mentor
-            <span className={inverse ? "text-[#8fe0c8]" : "text-[var(--primary)]"}>
+            <span className={inverse ? "text-[var(--hero-accent)]" : "text-[var(--primary)]"}>
               Lagbe
             </span>
           </span>
           {subtitle ? (
             <span
               className={`block text-[10px] font-bold uppercase tracking-[2px] ${
-                inverse ? "text-white/60" : "text-[var(--muted)]"
+                inverse ? "text-[var(--hero-muted)]" : "text-[var(--muted-foreground)]"
               }`}
             >
               {subtitle}

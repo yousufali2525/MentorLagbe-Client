@@ -15,6 +15,7 @@ import {
   Trash2,
   XCircle,
 } from "lucide-react";
+import StatCard from "@/components/dashboard/StatCard";
 import TuitionForm, { type TuitionPayload } from "@/components/tutor/TuitionForm";
 import { toast } from "@/components/ToastProvider";
 import { useMyTuitions } from "@/hooks/useMyTuitions";
@@ -33,11 +34,11 @@ const PAGE_SIZE = 6;
 function statusStyle(status?: string) {
   switch (status?.toLowerCase()) {
     case "approved":
-      return "bg-emerald-50 text-emerald-700";
+      return "status-success";
     case "rejected":
-      return "bg-red-50 text-red-700";
+      return "status-danger";
     default:
-      return "bg-amber-50 text-amber-700";
+      return "status-warning";
   }
 }
 
@@ -134,7 +135,7 @@ export default function TutorMyTuitionsPage() {
     <div className="mx-auto w-full max-w-[1600px]">
       <div className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
         <div>
-          <h1 className="text-xl font-extrabold sm:text-2xl">My Tuitions</h1>
+          <h2 className="text-xl font-extrabold sm:text-2xl">My Tuitions</h2>
           <p className="mt-1 text-sm text-[var(--muted)]">
             View, edit and manage all your tuition posts.
           </p>
@@ -159,28 +160,27 @@ export default function TutorMyTuitionsPage() {
         </div>
       </div>
 
-      <div className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <section
+        aria-label="Tuition statistics"
+        className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4"
+      >
         {[
           { label: "Total Tuitions", value: counts.total, icon: BookOpen },
           { label: "Pending Approval", value: counts.pending, icon: Clock3 },
           { label: "Approved", value: counts.approved, icon: CheckCircle2 },
           { label: "Rejected", value: counts.rejected, icon: XCircle },
-        ].map((item) => {
-          const Icon = item.icon;
-          return (
-            <div key={item.label} className="card p-5">
-              <div className="flex items-center justify-between gap-3">
-                <p className="text-sm text-[var(--muted)]">{item.label}</p>
-                <Icon size={20} className="text-[var(--primary)]" />
-              </div>
-              <p className="mt-3 text-3xl font-extrabold">{item.value}</p>
-            </div>
-          );
-        })}
-      </div>
+        ].map((item) => (
+          <StatCard
+            key={item.label}
+            title={item.label}
+            value={item.value}
+            icon={item.icon}
+          />
+        ))}
+      </section>
 
       {error && (
-        <div className="mb-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+        <div className="mb-6 rounded-xl border status-alert-danger p-4 text-sm">
           {error}
         </div>
       )}

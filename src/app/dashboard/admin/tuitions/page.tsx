@@ -125,7 +125,7 @@ export default function AdminTuitionsPage() {
         <div className="card p-5">
           <div className="flex items-center justify-between gap-3">
             <p className="text-sm text-[var(--muted)]">Pending Requests</p>
-            <Clock3 size={20} className="text-amber-600" />
+            <Clock3 size={20} className="text-[var(--warning)]" />
           </div>
           <p className="mt-3 text-3xl font-extrabold">{tuitions.length}</p>
         </div>
@@ -189,7 +189,7 @@ export default function AdminTuitionsPage() {
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
                         <h3 className="text-base font-bold">{tuition.title}</h3>
-                        <span className="badge bg-amber-50 text-amber-700">
+                        <span className="badge status-warning">
                           <Clock3 size={12} className="mr-1" />
                           Pending
                         </span>
