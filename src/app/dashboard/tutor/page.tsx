@@ -52,8 +52,12 @@ export default function TutorDashboardPage() {
           result.total ??
           (Array.isArray(result.data) ? result.data.length : 0);
         if (active) setApplicantCount(total);
-      } catch {
-        // Applicant count is optional on the overview page.
+      } catch (err) {
+        toast.error(
+          err instanceof Error
+            ? `Could not load applicant count: ${err.message}`
+            : "Could not load applicant count."
+        );
       }
     }
 

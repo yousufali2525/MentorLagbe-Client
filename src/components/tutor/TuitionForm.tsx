@@ -13,9 +13,11 @@ export type TuitionPayload = {
   mode: "Online" | "Offline";
   description: string;
   location: string;
+  monthlyFee: number;
   salary: number;
   daysPerWeek: number;
   category: string;
+  bannerImage: string;
   banner: string;
 };
 
@@ -68,10 +70,10 @@ function toFormState(tuition?: Partial<Tuition>): FormState {
     mode: tuition?.mode === "Offline" ? "Offline" : "Online",
     description: tuition?.description || "",
     location: tuition?.location || "",
-    salary: tuition?.salary ? String(tuition.salary) : "",
+    salary: String(tuition?.monthlyFee ?? tuition?.salary ?? ""),
     daysPerWeek: tuition?.daysPerWeek ? String(tuition.daysPerWeek) : "",
     category: tuition?.category || "General",
-    banner: tuition?.banner || "",
+    banner: tuition?.bannerImage || tuition?.banner || "",
   };
 }
 
@@ -79,12 +81,14 @@ export default function TuitionForm({
   initial,
   submitLabel = "Post Tuition",
   submitting = false,
+  disabled = false,
   onSubmit,
   onCancel,
 }: {
   initial?: Partial<Tuition>;
   submitLabel?: string;
   submitting?: boolean;
+  disabled?: boolean;
   onSubmit: (payload: TuitionPayload) => Promise<void>;
   onCancel?: () => void;
 }) {
@@ -152,6 +156,11 @@ export default function TuitionForm({
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
+    if (disabled) {
+      toast.error("Upgrade to Pro before posting another tuition.");
+      return;
+    }
+
     const salary = Number(form.salary);
     const daysPerWeek = Number(form.daysPerWeek);
 
@@ -183,9 +192,11 @@ export default function TuitionForm({
       mode: form.mode,
       description: form.description.trim(),
       location: form.location.trim(),
+      monthlyFee: salary,
       salary,
       daysPerWeek,
       category: form.category.trim() || "General",
+      bannerImage: form.banner.trim(),
       banner: form.banner.trim(),
     });
   }
@@ -374,7 +385,11 @@ export default function TuitionForm({
       </div>
 
       <div className="flex flex-wrap gap-3 border-t border-[var(--border)] pt-5">
-        <button type="submit" disabled={submitting || uploading} className="btn-primary">
+        <button
+          type="submit"
+          disabled={disabled || submitting || uploading}
+          className="btn-primary"
+        >
           {submitting ? (
             <LoaderCircle size={16} className="animate-spin" />
           ) : (

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -51,6 +51,11 @@ export default function TutorMyTuitionsPage() {
   const [editing, setEditing] = useState<Tuition | null>(null);
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (error) toast.error(error);
+  }, [error]);
 
   const subjects = useMemo(
     () => Array.from(new Set(tuitions.map((item) => item.subject).filter(Boolean))),
@@ -128,6 +133,36 @@ export default function TutorMyTuitionsPage() {
       toast.error(err instanceof Error ? err.message : "Unable to delete tuition.");
     } finally {
       setDeletingId(null);
+    }
+  }
+
+  async function handleToggleActive(tuition: Tuition) {
+    const id = tuitionId(tuition);
+    if (!id) return;
+
+    const nextActive = !tuition.isActive;
+
+    try {
+      setTogglingId(id);
+      const result = await apiFetch<{ message?: string; isActive?: boolean }>(
+        `/api/tuitions/${id}/active`,
+        {
+          method: "PATCH",
+          body: JSON.stringify({ isActive: nextActive }),
+        }
+      );
+      setTuitions((previous) =>
+        previous.map((item) =>
+          tuitionId(item) === id ? { ...item, isActive: result.isActive ?? nextActive } : item
+        )
+      );
+      toast.success(result.message || `Tuition ${nextActive ? "activated" : "closed"} successfully.`);
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Unable to update tuition status."
+      );
+    } finally {
+      setTogglingId(null);
     }
   }
 
@@ -221,9 +256,6 @@ export default function TutorMyTuitionsPage() {
                 Search and filter your tuition posts.
               </p>
             </div>
-            <p className="text-xs text-[var(--muted)]">
-              Active/closed toggle is not available in the current API.
-            </p>
           </div>
 
           <div className="mt-5 grid gap-3 md:grid-cols-3">
@@ -333,6 +365,27 @@ export default function TutorMyTuitionsPage() {
                     </div>
 
                     <div className="flex shrink-0 gap-2 lg:flex-col">
+                      {id && (
+                        <button
+                          type="button"
+                          onClick={() => handleToggleActive(tuition)}
+                          disabled={togglingId !== null}
+                          className={`${
+                            tuition.isActive ? "btn-secondary" : "btn-primary"
+                          } flex-1 justify-center text-xs lg:flex-none`}
+                        >
+                          {tuition.isActive ? (
+                            <XCircle size={14} />
+                          ) : (
+                            <CheckCircle2 size={14} />
+                          )}
+                          {togglingId === id
+                            ? "Updating..."
+                            : tuition.isActive
+                              ? "Close"
+                              : "Activate"}
+                        </button>
+                      )}
                       <button
                         type="button"
                         onClick={() => setEditing(tuition)}

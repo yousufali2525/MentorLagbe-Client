@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Info } from "lucide-react";
@@ -13,13 +13,22 @@ import { useMyTuitions } from "@/hooks/useMyTuitions";
 export default function PostTuitionPage() {
   const router = useRouter();
   const { user } = useAuth();
-  const { tuitions } = useMyTuitions();
+  const { tuitions, error } = useMyTuitions();
   const [submitting, setSubmitting] = useState(false);
 
   const freeLimitReached =
     user?.plan?.toLowerCase() !== "pro" && tuitions.length >= 2;
 
+  useEffect(() => {
+    if (error) toast.error(error);
+  }, [error]);
+
   async function handleSubmit(payload: TuitionPayload) {
+    if (freeLimitReached) {
+      toast.error("Free tutors can post a maximum of 2 tuitions. Upgrade to Pro to continue.");
+      return;
+    }
+
     try {
       setSubmitting(true);
       const result = await apiFetch<{ message?: string }>("/api/tuitions", {
@@ -53,20 +62,31 @@ export default function PostTuitionPage() {
       </div>
 
       {freeLimitReached && (
-        <div className="mb-6 flex items-start gap-3 rounded-xl border status-alert-warning p-4 text-sm">
-          <Info size={18} className="mt-0.5 shrink-0" />
-          <div>
-            Free tutors can post a maximum of 2 tuitions.
-            <Link href="/pricing" className="ml-1 font-bold underline">
-              Upgrade to Pro
-            </Link>{" "}
-            to post more.
+        <div className="mb-6 flex flex-col gap-4 rounded-xl border status-alert-warning p-4 text-sm sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-3">
+            <Info size={18} className="mt-0.5 shrink-0" />
+            <div>
+              <p className="font-bold">
+                Free plan limit reached — 2 of 2 tuitions posted.
+              </p>
+              <p className="mt-1 text-[var(--muted)]">
+                Upgrade to Pro to post unlimited tuitions.
+              </p>
+            </div>
           </div>
+          <Link href="/pricing" className="btn-primary shrink-0">
+            Upgrade to Pro
+          </Link>
         </div>
       )}
 
       <div className="card p-6 sm:p-8">
-        <TuitionForm submitLabel="Submit for Approval" submitting={submitting} onSubmit={handleSubmit} />
+        <TuitionForm
+          submitLabel="Submit for Approval"
+          submitting={submitting}
+          disabled={freeLimitReached}
+          onSubmit={handleSubmit}
+        />
       </div>
     </div>
   );
