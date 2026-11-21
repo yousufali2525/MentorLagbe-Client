@@ -14,7 +14,6 @@ import {
   BookOpen,
   ChevronDown,
   CreditCard,
-  ExternalLink,
   FileText,
   LayoutDashboard,
   LogOut,
@@ -37,7 +36,6 @@ type NavItem = {
   href: string;
   icon: LucideIcon;
   exact?: boolean;
-  external?: boolean;
 };
 
 type DashboardMeta = {
@@ -89,9 +87,8 @@ const NAV_ITEMS: Record<Role, NavItem[]> = {
     },
     {
       label: "Browse Tuitions",
-      href: "/tuitions",
+      href: "/dashboard/student/browse",
       icon: BookOpen,
-      external: true,
     },
     {
       label: "Profile",
@@ -260,24 +257,14 @@ function Sidebar({
           {navItems.map((item) => {
             const Icon = item.icon;
             const active = isItemActive(item, pathname);
-            const isExternal = item.external === true;
 
             return (
               <li key={item.href}>
                 <Link
                   href={item.href}
-                  target={isExternal ? "_blank" : undefined}
-                  rel={isExternal ? "noopener noreferrer" : undefined}
                   onClick={onNavigate}
                   aria-current={active ? "page" : undefined}
-                  aria-label={
-                    isExternal ? `${item.label} (opens in a new tab)` : undefined
-                  }
-                  title={
-                    !showLabels
-                      ? `${item.label}${isExternal ? " (opens in a new tab)" : ""}`
-                      : undefined
-                  }
+                  title={!showLabels ? item.label : undefined}
                   className={`group relative flex h-11 items-center rounded-xl text-sm font-semibold transition-all duration-200 ${
                     showLabels ? "gap-3 px-3" : "justify-center px-0"
                   } ${
@@ -288,16 +275,7 @@ function Sidebar({
                 >
                   <Icon size={20} className="shrink-0" strokeWidth={2.1} />
                   {showLabels ? (
-                    <span className="flex min-w-0 items-center gap-1.5 truncate">
-                      <span className="truncate">{item.label}</span>
-                      {isExternal ? (
-                        <ExternalLink
-                          size={14}
-                          className="shrink-0 opacity-70"
-                          aria-hidden="true"
-                        />
-                      ) : null}
-                    </span>
+                    <span className="truncate">{item.label}</span>
                   ) : null}
                   {active && showLabels ? (
                     <span className="ml-auto h-1.5 w-1.5 shrink-0 rounded-full bg-current opacity-70" />
@@ -305,7 +283,6 @@ function Sidebar({
                   {!showLabels ? (
                     <span className="pointer-events-none absolute left-[calc(100%+10px)] top-1/2 z-[60] -translate-y-1/2 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-2.5 py-1.5 text-xs font-semibold text-[var(--foreground)] opacity-0 shadow-lg transition-opacity group-hover:opacity-100">
                       {item.label}
-                      {isExternal ? " (opens in a new tab)" : null}
                     </span>
                   ) : null}
                 </Link>
