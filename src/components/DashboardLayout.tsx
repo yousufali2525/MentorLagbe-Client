@@ -15,6 +15,7 @@ import {
   ChevronDown,
   CreditCard,
   FileText,
+  Home,
   LayoutDashboard,
   LogOut,
   Menu,
@@ -49,6 +50,11 @@ type DashboardMeta = {
 const NAV_ITEMS: Record<Role, NavItem[]> = {
   tutor: [
     {
+      label: "Home",
+      href: "/",
+      icon: Home,
+    },
+    {
       label: "Overview",
       href: "/dashboard/tutor",
       icon: LayoutDashboard,
@@ -82,6 +88,11 @@ const NAV_ITEMS: Record<Role, NavItem[]> = {
   ],
   student: [
     {
+      label: "Home",
+      href: "/",
+      icon: Home,
+    },
+    {
       label: "Overview",
       href: "/dashboard/student",
       icon: LayoutDashboard,
@@ -109,6 +120,11 @@ const NAV_ITEMS: Record<Role, NavItem[]> = {
     },
   ],
   admin: [
+    {
+      label: "Home",
+      href: "/",
+      icon: Home,
+    },
     {
       label: "Overview",
       href: "/dashboard/admin",
@@ -157,6 +173,7 @@ const META: Record<Role, DashboardMeta> = {
 };
 
 function isItemActive(item: NavItem, pathname: string) {
+  if (item.href === "/") return false;
   if (item.exact) return pathname === item.href;
   if (item.href === "/dashboard/profile") {
     return (
