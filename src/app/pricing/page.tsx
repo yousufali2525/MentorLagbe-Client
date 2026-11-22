@@ -126,6 +126,11 @@ export default function PricingPage() {
   const currentRole = normalizeRole(user?.role);
   const isAdmin = currentRole === "admin";
   const isProUser = user?.plan?.toLowerCase() === "pro";
+  const showRolePlans =
+    !authLoading && (currentRole === "student" || currentRole === "tutor");
+  const visiblePlans = showRolePlans
+    ? plans.filter((plan) => plan.role === currentRole)
+    : plans;
 
   async function handleUpgrade(plan: Plan) {
     if (
@@ -232,8 +237,18 @@ export default function PricingPage() {
       </section>
 
       <section className="mx-auto max-w-7xl px-5 py-14 sm:px-8 lg:px-10 lg:py-16">
-        <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
-          {plans.map((plan) => {
+        <div
+          className={`mx-auto grid gap-6 ${
+            showRolePlans
+              ? "max-w-4xl md:grid-cols-2"
+              : "max-w-7xl sm:grid-cols-2 xl:grid-cols-4"
+          }`}
+        >
+          {authLoading
+            ? plans.map((plan) => (
+                <div key={plan.name} className="skeleton h-[520px] rounded-xl" />
+              ))
+            : visiblePlans.map((plan) => {
             const Icon = plan.icon;
             const action = planAction(plan);
 
