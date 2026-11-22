@@ -35,6 +35,38 @@ import {
 
 type ApplicationRecord = { tuitionId?: string; status?: string };
 
+/** Digits that are commonly used as profile placeholders rather than real numbers. */
+const PLACEHOLDER_PHONE_DIGITS = new Set([
+  "123456789",
+  "1234567890",
+  "0123456789",
+  "9876543210",
+]);
+
+function normalizePhoneDigits(value: string): string {
+  return value.replace(/\D/g, "");
+}
+
+/** Digits, spaces, "+" and "-" are allowed; 10–15 digits are required. */
+function isValidPhone(value: string): boolean {
+  const phone = value.trim();
+  if (!phone || !/^\+?[0-9 -]+$/.test(phone)) return false;
+
+  const digits = normalizePhoneDigits(phone);
+  return digits.length >= 10 && digits.length <= 15;
+}
+
+/** Only prefill from a saved profile when it looks like a real phone number. */
+function isRealProfilePhone(value?: string | null): boolean {
+  if (!value || !isValidPhone(value)) return false;
+
+  const digits = normalizePhoneDigits(value);
+  if (/^(\d)\1+$/.test(digits)) return false; // e.g. 11111111111 / 00000000000
+  if (PLACEHOLDER_PHONE_DIGITS.has(digits)) return false;
+
+  return true;
+}
+
 export default function TuitionDetailsPage() {
   const params = useParams();
   const id = String(params.id || "");
@@ -47,14 +79,16 @@ export default function TuitionDetailsPage() {
   const [error, setError] = useState("");
 
   const [studentPhone, setStudentPhone] = useState("");
+  const [phoneError, setPhoneError] = useState("");
   const [preferredSchedule, setPreferredSchedule] = useState("");
   const [studentNote, setStudentNote] = useState("");
   const [applying, setApplying] = useState(false);
   const [alreadyApplied, setAlreadyApplied] = useState(false);
 
   useEffect(() => {
-    if (user?.phone) {
-      setStudentPhone((current) => current || user.phone || "");
+    const profilePhone = user?.phone;
+    if (isRealProfilePhone(profilePhone)) {
+      setStudentPhone((profilePhone || "").trim());
     }
   }, [user?.phone]);
 
@@ -137,6 +171,15 @@ export default function TuitionDetailsPage() {
       toast.error("Phone and preferred schedule are required.");
       return;
     }
+
+    if (!isValidPhone(phone)) {
+      setPhoneError(
+        "Enter a valid phone number with 10–15 digits (digits, spaces, + and - only)."
+      );
+      toast.error("Please enter a valid phone number.");
+      return;
+    }
+    setPhoneError("");
 
     try {
       setApplying(true);
@@ -396,13 +439,29 @@ export default function TuitionDetailsPage() {
                       <input
                         id="apply-phone"
                         type="tel"
+                        inputMode="tel"
+                        autoComplete="tel"
                         required
                         value={studentPhone}
-                        onChange={(event) => setStudentPhone(event.target.value)}
-                        placeholder="e.g. +8801XXXXXXXXX"
+                        onChange={(event) => {
+                          setStudentPhone(event.target.value);
+                          setPhoneError("");
+                        }}
+                        placeholder="01XXXXXXXXX"
+                        aria-invalid={Boolean(phoneError)}
+                        aria-describedby={phoneError ? "apply-phone-error" : undefined}
                         className="field-input pl-9"
                       />
                     </div>
+                    {phoneError && (
+                      <p
+                        id="apply-phone-error"
+                        role="alert"
+                        className="mt-2 text-sm text-[var(--danger)]"
+                      >
+                        {phoneError}
+                      </p>
+                    )}
                   </div>
 
                   <div>

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   ArrowLeft,
   ArrowRight,
@@ -16,7 +17,6 @@ import {
   XCircle,
 } from "lucide-react";
 import StatCard from "@/components/dashboard/StatCard";
-import TuitionForm, { type TuitionPayload } from "@/components/tutor/TuitionForm";
 import { toast } from "@/components/ToastProvider";
 import { useMyTuitions } from "@/hooks/useMyTuitions";
 import { apiFetch } from "@/lib/api";
@@ -43,13 +43,12 @@ function statusStyle(status?: string) {
 }
 
 export default function TutorMyTuitionsPage() {
+  const router = useRouter();
   const { tuitions, loading, error, reload, setTuitions } = useMyTuitions();
   const [search, setSearch] = useState("");
   const [subjectFilter, setSubjectFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [page, setPage] = useState(1);
-  const [editing, setEditing] = useState<Tuition | null>(null);
-  const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [togglingId, setTogglingId] = useState<string | null>(null);
 
@@ -95,27 +94,6 @@ export default function TutorMyTuitionsPage() {
       rejected: tuitions.filter((item) => status(item.approvalStatus) === "rejected").length,
     };
   }, [tuitions]);
-
-  async function handleUpdate(payload: TuitionPayload) {
-    if (!editing) return;
-    const id = tuitionId(editing);
-    if (!id) return;
-
-    try {
-      setSaving(true);
-      const result = await apiFetch<{ message?: string }>(`/api/tuitions/${id}`, {
-        method: "PATCH",
-        body: JSON.stringify(payload),
-      });
-      toast.success(result.message || "Tuition updated and sent for approval.");
-      setEditing(null);
-      await reload();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Unable to update tuition.");
-    } finally {
-      setSaving(false);
-    }
-  }
 
   async function handleDelete(id: string) {
     if (!window.confirm("Delete this tuition? This cannot be undone.")) return;
@@ -218,33 +196,6 @@ export default function TutorMyTuitionsPage() {
         <div className="mb-6 rounded-xl border status-alert-danger p-4 text-sm">
           {error}
         </div>
-      )}
-
-      {editing && (
-        <section className="card mb-8 p-6 sm:p-8">
-          <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h2 className="text-lg font-extrabold">Edit Tuition</h2>
-              <p className="mt-1 text-sm text-[var(--muted)]">
-                Updated tuition will be submitted for admin approval.
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => setEditing(null)}
-              className="btn-secondary"
-            >
-              Close editor
-            </button>
-          </div>
-          <TuitionForm
-            initial={editing}
-            submitLabel="Save Changes"
-            submitting={saving}
-            onSubmit={handleUpdate}
-            onCancel={() => setEditing(null)}
-          />
-        </section>
       )}
 
       <section className="card overflow-hidden">
@@ -386,14 +337,18 @@ export default function TutorMyTuitionsPage() {
                               : "Activate"}
                         </button>
                       )}
-                      <button
-                        type="button"
-                        onClick={() => setEditing(tuition)}
-                        className="btn-secondary flex-1 justify-center text-xs lg:flex-none"
-                      >
-                        <Pencil size={14} />
-                        Edit
-                      </button>
+                      {id && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            router.push(`/dashboard/tutor/my-tuitions/${id}/edit`)
+                          }
+                          className="btn-secondary flex-1 justify-center text-xs lg:flex-none"
+                        >
+                          <Pencil size={14} />
+                          Edit
+                        </button>
+                      )}
                       {id && (
                         <button
                           type="button"

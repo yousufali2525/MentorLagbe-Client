@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState, type ChangeEvent, type FormEvent } from "react";
-import { ImagePlus, LoaderCircle, Save } from "lucide-react";
+import { ImagePlus, Info, LoaderCircle, Save } from "lucide-react";
 import { toast } from "@/components/ToastProvider";
 import { apiFetch } from "@/lib/api";
 import type { Tuition } from "@/lib/tuitions";
@@ -66,7 +66,7 @@ function toFormState(tuition?: Partial<Tuition>): FormState {
   return {
     title: tuition?.title || "",
     subject: tuition?.subject || "",
-    classLevel: tuition?.classLevel || "",
+    classLevel: tuition?.classLevel || tuition?.class || "",
     mode: tuition?.mode === "Offline" ? "Offline" : "Online",
     description: tuition?.description || "",
     location: tuition?.location || "",
@@ -203,6 +203,16 @@ export default function TuitionForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      {initial && (
+        <div className="flex items-start gap-3 rounded-xl border status-alert-warning p-4 text-sm">
+          <Info size={18} className="mt-0.5 shrink-0" />
+          <p>
+            Saving changes sends this tuition back to admin review before it
+            appears in public listings.
+          </p>
+        </div>
+      )}
+
       <div className="grid gap-5 md:grid-cols-2">
         <div className="md:col-span-2">
           <label htmlFor="tuition-title" className="field-label">
